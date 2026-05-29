@@ -1,0 +1,74 @@
+services:
+  auth-service:
+    build:
+      context: ./api
+      dockerfile: auth-service/Dockerfile
+    ports:
+      - "${AUTH_SERVICE_PORT}:8081"
+    environment:
+      SPRING_DATASOURCE_URL: ${AUTH_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+    depends_on:
+      - auth-db
+
+  auth-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${AUTH_DB_PORT}:5432"
+
+  account-service:
+    build:
+      context: ./api
+      dockerfile: account-service/Dockerfile
+    ports:
+      - "${ACCOUNT_SERVICE_PORT}:8082"
+    environment:
+      SPRING_DATASOURCE_URL: ${ACCOUNT_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+    depends_on:
+      - account-db
+
+  account-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${ACCOUNT_DB_PORT}:5432"
+
+  transaction-service:
+    build:
+      context: ./api
+      dockerfile: transaction-service/Dockerfile
+    ports:
+      - "${TRANSACTION_SERVICE_PORT}:8083"
+    environment:
+      SPRING_DATASOURCE_URL: ${TRANSACTION_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL}
+    depends_on:
+      - transaction-db
+      - account-service
+
+  transaction-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${TRANSACTION_DB_PORT}:5432"
