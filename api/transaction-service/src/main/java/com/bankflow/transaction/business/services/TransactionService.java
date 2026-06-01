@@ -2,12 +2,15 @@ package com.bankflow.transaction.business.services;
 
 import com.bankflow.transaction.business.dtos.AccountTransactionDto;
 import com.bankflow.transaction.business.dtos.TransferDto;
+import com.bankflow.transaction.business.helpers.BalanceCalculator;
 import com.bankflow.transaction.business.ports.IAccountClient;
+import com.bankflow.transaction.business.ports.IEventPublisher;
 import com.bankflow.transaction.business.ports.ITransactionRepository;
 import com.bankflow.transaction.business.responses.TransactionResponse;
 import com.bankflow.transaction.core.entities.Transaction;
 import com.bankflow.transaction.core.enums.TransactionStatus;
 import com.bankflow.transaction.core.enums.TransactionType;
+import com.bankflow.transaction.core.events.TransactionCreatedEvent;
 import com.bankflow.transaction.core.exceptions.AccountConflictException;
 import com.bankflow.transaction.core.exceptions.AccountNotActiveException;
 import com.bankflow.transaction.core.exceptions.InsufficientFundsException;
@@ -23,10 +26,16 @@ import java.util.UUID;
 public class TransactionService {
     private final ITransactionRepository transactionRepository;
     private final IAccountClient accountClient;
+    private final IEventPublisher eventPublisher;
 
-    public TransactionService(ITransactionRepository transactionRepository, IAccountClient accountClient) {
+    public TransactionService(
+            ITransactionRepository transactionRepository,
+            IAccountClient accountClient,
+            IEventPublisher eventPublisher
+    ) {
         this.transactionRepository = transactionRepository;
         this.accountClient = accountClient;
+        this.eventPublisher = eventPublisher;
     }
 
     public TransactionResponse deposit(AccountTransactionDto dto, UUID userId, String token) {
@@ -44,15 +53,13 @@ public class TransactionService {
                 LocalDateTime.now()
         );
 
-        transaction.complete();
-
-        return TransactionResponse.from(transactionRepository.save(transaction));
+        return saveAndPublish(transaction);
     }
 
     public TransactionResponse withdraw(AccountTransactionDto dto, UUID userId, String token) {
         AccountSnapshot account = getAccountSnapshot(dto.accountId(), token);
 
-        BigDecimal balance = getBalance(dto.accountId());
+        BigDecimal balance = BalanceCalculator.calculate(dto.accountId(), transactionRepository.findAllByAccountId(dto.accountId()));
 
         if (balance.compareTo(dto.amount()) < 0) {
             throw new InsufficientFundsException();
@@ -70,19 +77,7 @@ public class TransactionService {
                 LocalDateTime.now()
         );
 
-        transaction.complete();
-
-        return TransactionResponse.from(transactionRepository.save(transaction));
-    }
-
-    private AccountSnapshot getAccountSnapshot(UUID accountId, String token) {
-        AccountSnapshot account = accountClient.getAccount(accountId, token);
-
-        if (!account.status().equals("ACTIVE")) {
-            throw new AccountNotActiveException(accountId);
-        }
-
-        return account;
+        return saveAndPublish(transaction);
     }
 
     public TransactionResponse transfer(TransferDto dto, UUID userId, String token) {
@@ -92,7 +87,7 @@ public class TransactionService {
 
         getAccountSnapshot(dto.toAccountId(), token);
 
-        BigDecimal balance = getBalance(dto.fromAccountId());
+        BigDecimal balance = BalanceCalculator.calculate(dto.fromAccountId(), transactionRepository.findAllByAccountId(dto.fromAccountId()));
 
         if (balance.compareTo(dto.amount()) < 0) {
             throw new InsufficientFundsException();
@@ -110,9 +105,36 @@ public class TransactionService {
                 LocalDateTime.now()
         );
 
+        return saveAndPublish(transaction);
+    }
+
+    private AccountSnapshot getAccountSnapshot(UUID accountId, String token) {
+        AccountSnapshot account = accountClient.getAccount(accountId, token);
+
+        if (!account.status().equals("ACTIVE")) {
+            throw new AccountNotActiveException(accountId);
+        }
+
+        return account;
+    }
+
+    private TransactionResponse saveAndPublish(Transaction transaction) {
         transaction.complete();
 
-        return TransactionResponse.from(transactionRepository.save(transaction));
+        Transaction saved = transactionRepository.save(transaction);
+
+        eventPublisher.publish(new TransactionCreatedEvent(
+                saved.getId(),
+                saved.getAccountSnapshot().id(),
+                saved.getUserId(),
+                saved.getType(),
+                saved.getAmount(),
+                saved.getAccountSnapshot().currency(),
+                saved.getTargetAccountId(),
+                saved.getCreatedAt()
+        ));
+
+        return TransactionResponse.from(saved);
     }
 
     public List<TransactionResponse> getTransactionHistory(UUID accountId) {
@@ -120,27 +142,5 @@ public class TransactionService {
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
-    }
-
-    private BigDecimal getBalance(UUID accountId) {
-        List<Transaction> transactions = transactionRepository.findAllByAccountId(accountId);
-
-        BigDecimal balance = BigDecimal.ZERO;
-
-        for (Transaction t : transactions) {
-            switch (t.getType()) {
-                case DEPOSIT -> balance = balance.add(t.getAmount());
-                case WITHDRAWAL -> balance = balance.subtract(t.getAmount());
-                case TRANSFER -> {
-                    if (t.getAccountSnapshot().id().equals(accountId)) {
-                        balance = balance.subtract(t.getAmount());
-                    } else {
-                        balance = balance.add(t.getAmount());
-                    }
-                }
-            }
-        }
-
-        return balance;
     }
 }
