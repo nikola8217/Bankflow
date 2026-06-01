@@ -1,9 +1,9 @@
 package com.bankflow.transaction.business.responses;
 
+import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import com.bankflow.transaction.core.entities.Transaction;
 import com.bankflow.transaction.core.enums.TransactionStatus;
-import com.bankflow.transaction.core.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

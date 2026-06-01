@@ -2,13 +2,16 @@ package com.bankflow.transaction.infra.adapters;
 
 import com.bankflow.shared.exceptions.ServiceUnavailableException;
 import com.bankflow.transaction.business.ports.IAccountClient;
+import com.bankflow.transaction.core.exceptions.AccountNotFoundException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
 
 import java.util.UUID;
 
@@ -37,6 +40,8 @@ public class AccountClientAdapter implements IAccountClient {
                     entity,
                     AccountSnapshot.class
             ).getBody();
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new AccountNotFoundException(accountId);
         } catch (Exception e) {
             throw new ServiceUnavailableException("Account service");
         }

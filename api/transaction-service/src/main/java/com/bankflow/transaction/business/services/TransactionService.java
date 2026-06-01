@@ -1,5 +1,6 @@
 package com.bankflow.transaction.business.services;
 
+import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.dtos.AccountTransactionDto;
 import com.bankflow.transaction.business.dtos.TransferDto;
 import com.bankflow.transaction.business.helpers.BalanceCalculator;
@@ -9,8 +10,7 @@ import com.bankflow.transaction.business.ports.ITransactionRepository;
 import com.bankflow.transaction.business.responses.TransactionResponse;
 import com.bankflow.transaction.core.entities.Transaction;
 import com.bankflow.transaction.core.enums.TransactionStatus;
-import com.bankflow.transaction.core.enums.TransactionType;
-import com.bankflow.transaction.core.events.TransactionCreatedEvent;
+import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.core.exceptions.AccountConflictException;
 import com.bankflow.transaction.core.exceptions.AccountNotActiveException;
 import com.bankflow.transaction.core.exceptions.InsufficientFundsException;

@@ -1,7 +1,7 @@
 package com.bankflow.transaction.core.entities;
 
+import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.core.enums.TransactionStatus;
-import com.bankflow.transaction.core.enums.TransactionType;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import lombok.Getter;
 

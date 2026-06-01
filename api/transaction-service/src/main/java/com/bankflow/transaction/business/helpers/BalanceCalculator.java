@@ -1,7 +1,6 @@
 package com.bankflow.transaction.business.helpers;
 
 import com.bankflow.transaction.core.entities.Transaction;
-import com.bankflow.transaction.core.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.bankflow.transaction.core.enums;
+package com.bankflow.shared.enums;
 
 public enum TransactionType {
     DEPOSIT,

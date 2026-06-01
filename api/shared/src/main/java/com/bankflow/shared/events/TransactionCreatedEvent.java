@@ -1,6 +1,6 @@
-package com.bankflow.transaction.core.events;
+package com.bankflow.shared.events;
 
-import com.bankflow.transaction.core.enums.TransactionType;
+import com.bankflow.shared.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

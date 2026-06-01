@@ -1,7 +1,7 @@
 package com.bankflow.transaction.infra.adapters;
 
 import com.bankflow.transaction.business.ports.IEventPublisher;
-import com.bankflow.transaction.core.events.TransactionCreatedEvent;
+import com.bankflow.shared.events.TransactionCreatedEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
