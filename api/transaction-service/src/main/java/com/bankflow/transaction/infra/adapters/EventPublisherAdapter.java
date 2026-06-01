@@ -10,14 +10,19 @@ public class EventPublisherAdapter implements IEventPublisher {
 
     private static final String TOPIC = "transaction-created";
 
-    private final KafkaTemplate<String, TransactionCreatedEvent> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public EventPublisherAdapter(KafkaTemplate<String, TransactionCreatedEvent> kafkaTemplate) {
+    public EventPublisherAdapter(KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
     @Override
     public void publish(TransactionCreatedEvent event) {
-        kafkaTemplate.send(TOPIC, event.transactionId().toString(), event);
+        kafkaTemplate.send(TOPIC, event.transactionId().toString(), event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        System.err.println("Failed to send event: " + ex.getMessage());
+                    }
+                });
     }
 }
