@@ -1,65 +1,61 @@
 package com.bankflow.transaction.presentation.controllers;
 
+import com.bankflow.transaction.business.CommandBus;
+import com.bankflow.transaction.business.commands.DepositCommand;
+import com.bankflow.transaction.business.commands.TransferCommand;
+import com.bankflow.transaction.business.commands.WithdrawCommand;
 import com.bankflow.transaction.business.dtos.AccountTransactionDto;
 import com.bankflow.transaction.business.dtos.TransferDto;
-import com.bankflow.transaction.business.responses.TransactionResponse;
-import com.bankflow.transaction.business.services.TransactionService;
+import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
+import com.bankflow.transaction.business.responses.TransferResponse;
 import com.bankflow.transaction.presentation.httpValidations.TransactionRequestsValidation;
 import com.bankflow.shared.security.SecurityUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/transactions")
 public class TransactionController {
 
-    private final TransactionService transactionService;
-
-    public TransactionController(TransactionService transactionService) {
-        this.transactionService = transactionService;
-    }
+    private final CommandBus commandBus;
 
     @PostMapping("/deposit")
-    public ResponseEntity<TransactionResponse> deposit(
+    public ResponseEntity<TransactionCreatedResponse> deposit(
             @RequestHeader("Authorization") String token,
             @RequestBody AccountTransactionDto dto) {
 
         TransactionRequestsValidation.validateAmount(dto);
-
         UUID userId = SecurityUtils.getCurrentUserId();
-
-        return ResponseEntity.status(201).body(transactionService.deposit(dto, userId, token));
+        return ResponseEntity.status(201).body(
+                commandBus.send(new DepositCommand(dto, userId, token))
+        );
     }
 
     @PostMapping("/withdraw")
-    public ResponseEntity<TransactionResponse> withdraw(
+    public ResponseEntity<TransactionCreatedResponse> withdraw(
             @RequestHeader("Authorization") String token,
             @RequestBody AccountTransactionDto dto) {
 
         TransactionRequestsValidation.validateAmount(dto);
-
         UUID userId = SecurityUtils.getCurrentUserId();
-
-        return ResponseEntity.status(201).body(transactionService.withdraw(dto, userId, token));
+        return ResponseEntity.status(201).body(
+                commandBus.send(new WithdrawCommand(dto, userId, token))
+        );
     }
 
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionResponse> transfer(
+    public ResponseEntity<TransferResponse> transfer(
             @RequestHeader("Authorization") String token,
             @RequestBody TransferDto dto) {
 
         TransactionRequestsValidation.validateTransferRequest(dto);
-
         UUID userId = SecurityUtils.getCurrentUserId();
-
-        return ResponseEntity.status(201).body(transactionService.transfer(dto, userId, token));
-    }
-
-    @GetMapping("/account/{accountId}")
-    public ResponseEntity<List<TransactionResponse>> getTransactionHistory(@PathVariable UUID accountId) {
-        return ResponseEntity.ok(transactionService.getTransactionHistory(accountId));
+        return ResponseEntity.status(201).body(
+                commandBus.send(new TransferCommand(dto, userId, token))
+        );
     }
 }

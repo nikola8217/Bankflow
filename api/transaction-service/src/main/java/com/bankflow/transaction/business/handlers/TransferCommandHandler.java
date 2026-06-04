@@ -1,0 +1,60 @@
+package com.bankflow.transaction.business.handlers;
+
+import com.bankflow.shared.enums.TransactionType;
+import com.bankflow.transaction.business.commands.TransferCommand;
+import com.bankflow.transaction.business.ports.IAccountClient;
+import com.bankflow.transaction.business.ports.IEventStore;
+import com.bankflow.transaction.business.ports.IOutboxRepository;
+import com.bankflow.transaction.business.responses.TransferResponse;
+import com.bankflow.transaction.core.aggregates.TransactionAggregate;
+import com.bankflow.transaction.core.commands.CommandHandler;
+import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
+
+@Component
+public class TransferCommandHandler extends BaseTransactionHandler implements CommandHandler<TransferCommand, TransferResponse> {
+
+    private final IEventStore eventStore;
+
+    public TransferCommandHandler(IAccountClient accountClient,
+                                 IOutboxRepository outboxRepository,
+                                 IEventStore eventStore) {
+        super(accountClient, outboxRepository);
+        this.eventStore = eventStore;
+    }
+
+    @Override
+    public Class<TransferCommand> getCommandType() {
+        return TransferCommand.class;
+    }
+
+    @Override
+    @Transactional
+    public TransferResponse handle(TransferCommand command) {
+        AccountSnapshot fromAccount = getAccountSnapshot(command.dto().fromAccountId(), command.token());
+        getAccountSnapshot(command.dto().toAccountId(), command.token());
+
+        UUID transactionId = UUID.randomUUID();
+
+        TransactionAggregate aggregate = new TransactionAggregate();
+        aggregate.initiate(
+                transactionId,
+                fromAccount.id(),
+                command.userId(),
+                TransactionType.TRANSFER,
+                command.dto().amount(),
+                fromAccount.currency(),
+                command.dto().toAccountId()
+        );
+
+        eventStore.save(aggregate);
+        saveToOutbox(transactionId, fromAccount.id(), command.userId(),
+                TransactionType.TRANSFER, command.dto().amount(),
+                fromAccount.currency(), command.dto().toAccountId());
+
+        return TransferResponse.from(transactionId, command.dto().toAccountId(), "Transfer initiated successfully");
+    }
+}
