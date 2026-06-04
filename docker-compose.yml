@@ -75,31 +75,31 @@ services:
     ports:
       - "${TRANSACTION_DB_PORT}:5432"
 
-  balance-service:
+  ledger-service:
     build:
       context: ./api
-      dockerfile: balance-service/Dockerfile
+      dockerfile: ledger-service/Dockerfile
     ports:
-      - "${BALANCE_SERVICE_PORT}:8084"
+      - "${LEDGER_SERVICE_PORT}:8084"
     environment:
-      SPRING_DATASOURCE_URL: ${BALANCE_DB_URL}
+      SPRING_DATASOURCE_URL: ${LEDGER_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
     depends_on:
-      - balance-db
+      - ledger-db
       - kafka
 
-  balance-db:
+  ledger-db:
     image: postgres:16
     environment:
-      POSTGRES_DB: balance_db
+      POSTGRES_DB: ledger_db
       POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${BALANCE_DB_PORT}:5432"
+      - "${LEDGER_DB_PORT}:5432"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
