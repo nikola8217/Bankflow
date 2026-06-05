@@ -1,10 +1,10 @@
-package com.bankflow.transaction.infra.adapters;
+package com.bankflow.ledger.infra.adapters;
 
+import com.bankflow.ledger.business.ports.IOutboxRepository;
+import com.bankflow.ledger.core.entities.OutboxEntry;
+import com.bankflow.ledger.infra.mappers.OutboxMapper;
+import com.bankflow.ledger.infra.repositories.OutboxJpaRepository;
 import com.bankflow.shared.enums.OutboxStatus;
-import com.bankflow.transaction.business.ports.IOutboxRepository;
-import com.bankflow.transaction.core.entities.OutboxEntry;
-import com.bankflow.transaction.infra.mappers.OutboxMapper;
-import com.bankflow.transaction.infra.repositories.OutboxJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

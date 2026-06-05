@@ -2,8 +2,6 @@ package com.bankflow.ledger.infra.config;
 
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,21 +16,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class KafkaConfig {
+public class KafkaConsumerConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        return mapper;
-    }
-
-    @Bean
-    public ConsumerFactory<String, TransactionCreatedEvent> consumerFactory() {
+    public ConsumerFactory<String, TransactionCreatedEvent> consumerFactory(ObjectMapper objectMapper) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, "ledger-service");
@@ -40,7 +30,7 @@ public class KafkaConfig {
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         JsonDeserializer<TransactionCreatedEvent> deserializer =
-                new JsonDeserializer<>(TransactionCreatedEvent.class, objectMapper());
+                new JsonDeserializer<>(TransactionCreatedEvent.class, objectMapper);
         deserializer.addTrustedPackages("*");
 
         DefaultKafkaConsumerFactory<String, TransactionCreatedEvent> factory =
@@ -50,10 +40,11 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TransactionCreatedEvent> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, TransactionCreatedEvent> kafkaListenerContainerFactory(
+            ConsumerFactory<String, TransactionCreatedEvent> consumerFactory) {
         ConcurrentKafkaListenerContainerFactory<String, TransactionCreatedEvent> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(consumerFactory);
         return factory;
     }
 }

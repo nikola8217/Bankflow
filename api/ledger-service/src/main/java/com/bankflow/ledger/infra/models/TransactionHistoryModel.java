@@ -1,5 +1,6 @@
 package com.bankflow.ledger.infra.models;
 
+import com.bankflow.shared.enums.TransactionStatus;
 import com.bankflow.shared.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -40,6 +41,12 @@ public class TransactionHistoryModel {
 
     private UUID targetAccountId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TransactionStatus status;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    private String failureReason;
 }

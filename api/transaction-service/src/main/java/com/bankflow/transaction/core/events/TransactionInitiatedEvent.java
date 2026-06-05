@@ -3,12 +3,14 @@ package com.bankflow.transaction.core.events;
 import com.bankflow.shared.enums.TransactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class TransactionInitiatedEvent {
     private UUID transactionId;
     private UUID accountId;

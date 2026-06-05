@@ -1,7 +1,7 @@
-package com.bankflow.transaction.infra.repositories;
+package com.bankflow.ledger.infra.repositories;
 
+import com.bankflow.ledger.infra.models.OutboxModel;
 import com.bankflow.shared.enums.OutboxStatus;
-import com.bankflow.transaction.infra.models.OutboxModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

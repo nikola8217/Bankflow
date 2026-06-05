@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface IEventStore {
     void save(TransactionAggregate aggregate);
-//    Optional<TransactionAggregate> load(UUID transactionId);
+    Optional<TransactionAggregate> load(UUID transactionId);
 }

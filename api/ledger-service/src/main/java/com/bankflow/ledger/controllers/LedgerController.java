@@ -1,4 +1,4 @@
-package com.bankflow.ledger.presentation.controllers;
+package com.bankflow.ledger.controllers;
 
 import com.bankflow.ledger.business.ports.IBalanceRepository;
 import com.bankflow.ledger.business.ports.ITransactionHistoryRepository;

@@ -1,4 +1,4 @@
-package com.bankflow.transaction.infra.models;
+package com.bankflow.ledger.infra.models;
 
 import com.bankflow.shared.enums.OutboxStatus;
 import jakarta.persistence.*;
@@ -30,8 +30,8 @@ public class OutboxModel {
     @JdbcTypeCode(SqlTypes.JSON)
     private String payload;
 
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OutboxStatus status;
 
     @Column(nullable = false)

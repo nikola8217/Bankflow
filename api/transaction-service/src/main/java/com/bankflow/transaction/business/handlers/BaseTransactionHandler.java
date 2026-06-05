@@ -5,7 +5,7 @@ import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
 import com.bankflow.transaction.core.entities.OutboxEntry;
-import com.bankflow.transaction.core.enums.OutboxStatus;
+import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.transaction.core.exceptions.AccountNotActiveException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import lombok.RequiredArgsConstructor;

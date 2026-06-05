@@ -1,4 +1,4 @@
-package com.bankflow.transaction.core.entities;
+package com.bankflow.ledger.core.entities;
 
 import com.bankflow.shared.enums.OutboxStatus;
 import lombok.Builder;

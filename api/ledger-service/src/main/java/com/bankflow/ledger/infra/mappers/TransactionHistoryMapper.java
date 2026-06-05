@@ -16,7 +16,9 @@ public class TransactionHistoryMapper {
         model.setAmount(history.getAmount());
         model.setCurrency(history.getCurrency());
         model.setTargetAccountId(history.getTargetAccountId());
+        model.setStatus(history.getStatus());
         model.setCreatedAt(history.getCreatedAt());
+        model.setFailureReason(history.getFailureReason());
         return model;
     }
 
@@ -29,7 +31,9 @@ public class TransactionHistoryMapper {
                 model.getAmount(),
                 model.getCurrency(),
                 model.getTargetAccountId(),
-                model.getCreatedAt()
+                model.getStatus(),
+                model.getCreatedAt(),
+                model.getFailureReason()
         );
     }
 }

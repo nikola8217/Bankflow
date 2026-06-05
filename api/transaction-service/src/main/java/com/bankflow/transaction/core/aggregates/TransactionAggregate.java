@@ -1,7 +1,7 @@
 package com.bankflow.transaction.core.aggregates;
 
 import com.bankflow.shared.enums.TransactionType;
-import com.bankflow.transaction.core.enums.TransactionStatus;
+import com.bankflow.shared.enums.TransactionStatus;
 import com.bankflow.transaction.core.events.TransactionCompletedEvent;
 import com.bankflow.transaction.core.events.TransactionFailedEvent;
 import com.bankflow.transaction.core.events.TransactionInitiatedEvent;

@@ -1,8 +1,8 @@
-package com.bankflow.transaction.infra.mappers;
+package com.bankflow.ledger.infra.mappers;
 
-import com.bankflow.transaction.core.entities.OutboxEntry;
-import com.bankflow.transaction.infra.helpers.JsonSerializer;
-import com.bankflow.transaction.infra.models.OutboxModel;
+import com.bankflow.ledger.core.entities.OutboxEntry;
+import com.bankflow.ledger.infra.helpers.JsonSerializer;
+import com.bankflow.ledger.infra.models.OutboxModel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
