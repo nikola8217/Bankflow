@@ -4,6 +4,7 @@ import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.commands.TransferCommand;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IEventStore;
+import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
 import com.bankflow.transaction.business.responses.TransferResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
@@ -21,8 +22,9 @@ public class TransferCommandHandler extends BaseTransactionHandler implements Co
 
     public TransferCommandHandler(IAccountClient accountClient,
                                  IOutboxRepository outboxRepository,
+                                 IIdempotencyRepository idempotencyRepository,
                                  IEventStore eventStore) {
-        super(accountClient, outboxRepository);
+        super(accountClient, outboxRepository, idempotencyRepository);
         this.eventStore = eventStore;
     }
 
@@ -34,6 +36,8 @@ public class TransferCommandHandler extends BaseTransactionHandler implements Co
     @Override
     @Transactional
     public TransferResponse handle(TransferCommand command) {
+        checkIdempotency(command.idempotencyKey());
+
         AccountSnapshot fromAccount = getAccountSnapshot(command.dto().fromAccountId(), command.token());
         getAccountSnapshot(command.dto().toAccountId(), command.token());
 
@@ -54,6 +58,8 @@ public class TransferCommandHandler extends BaseTransactionHandler implements Co
         saveToOutbox(transactionId, fromAccount.id(), command.userId(),
                 TransactionType.TRANSFER, command.dto().amount(),
                 fromAccount.currency(), command.dto().toAccountId());
+
+        saveIdempotencyKey(command.idempotencyKey());
 
         return TransferResponse.from(transactionId, command.dto().toAccountId(), "Transfer initiated successfully");
     }

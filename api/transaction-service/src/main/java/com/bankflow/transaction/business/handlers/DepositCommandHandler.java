@@ -4,6 +4,7 @@ import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.commands.DepositCommand;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IEventStore;
+import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
 import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
@@ -21,8 +22,9 @@ public class DepositCommandHandler extends BaseTransactionHandler implements Com
 
     public DepositCommandHandler(IAccountClient accountClient,
                                  IOutboxRepository outboxRepository,
+                                 IIdempotencyRepository idempotencyRepository,
                                  IEventStore eventStore) {
-        super(accountClient, outboxRepository);
+        super(accountClient, outboxRepository, idempotencyRepository);
         this.eventStore = eventStore;
     }
 
@@ -34,7 +36,9 @@ public class DepositCommandHandler extends BaseTransactionHandler implements Com
     @Override
     @Transactional
     public TransactionCreatedResponse handle(DepositCommand command) {
-        AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.token());
+        checkIdempotency(command.dto().idempotencyKey());
+
+        AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.dto().token());
 
         UUID transactionId = UUID.randomUUID();
 
@@ -42,7 +46,7 @@ public class DepositCommandHandler extends BaseTransactionHandler implements Com
         aggregate.initiate(
                 transactionId,
                 account.id(),
-                command.userId(),
+                command.dto().userID(),
                 TransactionType.DEPOSIT,
                 command.dto().amount(),
                 account.currency(),
@@ -51,8 +55,11 @@ public class DepositCommandHandler extends BaseTransactionHandler implements Com
         aggregate.complete();
 
         eventStore.save(aggregate);
-        saveToOutbox(transactionId, account.id(), command.userId(),
+
+        saveToOutbox(transactionId, account.id(), command.dto().userID(),
                 TransactionType.DEPOSIT, command.dto().amount(), account.currency(), null);
+
+        saveIdempotencyKey(command.dto().idempotencyKey());
 
         return TransactionCreatedResponse.from(transactionId, "Deposit initiated successfully");
     }

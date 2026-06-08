@@ -4,6 +4,7 @@ import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.commands.WithdrawCommand;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IEventStore;
+import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
 import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
@@ -21,8 +22,9 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
 
     public WithdrawCommandHandler(IAccountClient accountClient,
                                  IOutboxRepository outboxRepository,
+                                 IIdempotencyRepository idempotencyRepository,
                                  IEventStore eventStore) {
-        super(accountClient, outboxRepository);
+        super(accountClient, outboxRepository, idempotencyRepository);
         this.eventStore = eventStore;
     }
 
@@ -34,6 +36,8 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
     @Override
     @Transactional
     public TransactionCreatedResponse handle(WithdrawCommand command) {
+        checkIdempotency(command.idempotencyKey());
+
         AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.token());
 
         UUID transactionId = UUID.randomUUID();
@@ -52,6 +56,8 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
         eventStore.save(aggregate);
         saveToOutbox(transactionId, account.id(), command.userId(),
                 TransactionType.WITHDRAWAL, command.dto().amount(), account.currency(), null);
+
+        saveIdempotencyKey(command.idempotencyKey());
 
         return TransactionCreatedResponse.from(transactionId, "Withdrawal initiated successfully");
     }

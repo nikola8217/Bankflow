@@ -3,12 +3,15 @@ package com.bankflow.transaction.business.handlers;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.business.ports.IAccountClient;
+import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
 import com.bankflow.transaction.core.entities.OutboxEntry;
 import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.transaction.core.exceptions.AccountNotActiveException;
+import com.bankflow.transaction.core.exceptions.TransactionException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,6 +22,17 @@ public abstract class BaseTransactionHandler {
 
     protected final IAccountClient accountClient;
     protected final IOutboxRepository outboxRepository;
+    protected final IIdempotencyRepository idempotencyRepository;
+
+    protected void checkIdempotency(String idempotencyKey) {
+        if (idempotencyRepository.exists(idempotencyKey)) {
+            throw new TransactionException("Duplicate request", HttpStatus.CONFLICT);
+        }
+    }
+
+    protected void saveIdempotencyKey(String idempotencyKey) {
+        idempotencyRepository.save(idempotencyKey);
+    }
 
     protected AccountSnapshot getAccountSnapshot(UUID accountId, String token) {
         AccountSnapshot account = accountClient.getAccount(accountId, token);

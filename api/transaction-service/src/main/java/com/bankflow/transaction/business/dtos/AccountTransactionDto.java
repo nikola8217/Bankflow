@@ -5,5 +5,8 @@ import java.util.UUID;
 
 public record AccountTransactionDto(
         UUID accountId,
-        BigDecimal amount
+        BigDecimal amount,
+        String token,
+        UUID userID,
+        String idempotencyKey
 ) {}

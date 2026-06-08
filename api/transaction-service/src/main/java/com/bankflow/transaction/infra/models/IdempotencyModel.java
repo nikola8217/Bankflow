@@ -8,23 +8,17 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transaction_snapshots")
+@Table(name = "idempotency_keys")
 @Data
 @NoArgsConstructor
-public class TransactionSnapshotModel {
+public class IdempotencyModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false, unique = true)
-    private UUID aggregateId;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String state;
-
-    @Column(nullable = false)
-    private Integer version;
+    private String idempotencyKey;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

@@ -10,6 +10,8 @@ import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
 import com.bankflow.transaction.business.responses.TransferResponse;
 import com.bankflow.transaction.presentation.httpValidations.TransactionRequestsValidation;
 import com.bankflow.shared.security.SecurityUtils;
+import com.bankflow.transaction.presentation.requests.AccountTransactionRequest;
+import com.bankflow.transaction.presentation.requests.TransferRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,36 +28,39 @@ public class TransactionController {
     @PostMapping("/deposit")
     public ResponseEntity<TransactionCreatedResponse> deposit(
             @RequestHeader("Authorization") String token,
-            @RequestBody AccountTransactionDto dto) {
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestBody AccountTransactionRequest request) {
 
-        TransactionRequestsValidation.validateAmount(dto);
-        UUID userId = SecurityUtils.getCurrentUserId();
         return ResponseEntity.status(201).body(
-                commandBus.send(new DepositCommand(dto, userId, token))
+                commandBus.send(new DepositCommand(
+                        request.format(token, idempotencyKey, SecurityUtils.getCurrentUserId())
+                ))
         );
     }
 
     @PostMapping("/withdraw")
     public ResponseEntity<TransactionCreatedResponse> withdraw(
             @RequestHeader("Authorization") String token,
-            @RequestBody AccountTransactionDto dto) {
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestBody AccountTransactionRequest request) {
 
-        TransactionRequestsValidation.validateAmount(dto);
-        UUID userId = SecurityUtils.getCurrentUserId();
         return ResponseEntity.status(201).body(
-                commandBus.send(new WithdrawCommand(dto, userId, token))
+                commandBus.send(new WithdrawCommand(
+                        request.format(token, idempotencyKey, SecurityUtils.getCurrentUserId())
+                ))
         );
     }
 
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> transfer(
             @RequestHeader("Authorization") String token,
-            @RequestBody TransferDto dto) {
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestBody TransferRequest request) {
 
-        TransactionRequestsValidation.validateTransferRequest(dto);
-        UUID userId = SecurityUtils.getCurrentUserId();
         return ResponseEntity.status(201).body(
-                commandBus.send(new TransferCommand(dto, userId, token))
+                commandBus.send(new TransferCommand(
+                        request.format(token, idempotencyKey, SecurityUtils.getCurrentUserId())
+                ))
         );
     }
 }
