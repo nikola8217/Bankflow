@@ -1,21 +1,22 @@
 package com.bankflow.auth.presentation.httpValidations;
 
 import com.bankflow.auth.business.dtos.LoginUserDto;
-import com.bankflow.auth.business.dtos.RegisterUserDto;
 import com.bankflow.auth.core.validations.UserValidation;
+import com.bankflow.auth.presentation.requests.LoginUserRequest;
+import com.bankflow.auth.presentation.requests.RegisterUserRequest;
 
 public class AuthRequestsValidation {
-    public static void validateRegisterRequest(RegisterUserDto dto) {
-        UserValidation.validateRequiredField(dto.firstName(), "First name");
-        UserValidation.validateRequiredField(dto.lastName(), "Last name");
-        UserValidation.validateRequiredField(dto.email(), "Email");
-        UserValidation.validateRequiredField(dto.password(), "Password");
-        UserValidation.validateEmail(dto.email());
-        UserValidation.validatePassword(dto.password());
+    public static void validateRegisterRequest(RegisterUserRequest request) {
+        UserValidation.validateRequiredField(request.getFirstName(), "First name");
+        UserValidation.validateRequiredField(request.getLastName(), "Last name");
+        UserValidation.validateRequiredField(request.getEmail(), "Email");
+        UserValidation.validateRequiredField(request.getPassword(), "Password");
+        UserValidation.validateEmail(request.getEmail());
+        UserValidation.validatePassword(request.getPassword());
     }
 
-    public static void validateLoginRequest(LoginUserDto dto) {
-        UserValidation.validateRequiredField(dto.email(), "Email");
-        UserValidation.validateRequiredField(dto.password(), "Password");
+    public static void validateLoginRequest(LoginUserRequest request) {
+        UserValidation.validateRequiredField(request.getEmail(), "Email");
+        UserValidation.validateRequiredField(request.getPassword(), "Password");
     }
 }

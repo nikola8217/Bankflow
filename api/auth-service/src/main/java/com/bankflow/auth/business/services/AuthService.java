@@ -2,9 +2,9 @@ package com.bankflow.auth.business.services;
 
 import com.bankflow.auth.business.dtos.LoginUserDto;
 import com.bankflow.auth.business.dtos.RegisterUserDto;
-import com.bankflow.auth.business.dtos.TokenDto;
 import com.bankflow.auth.business.ports.ITokenService;
 import com.bankflow.auth.business.ports.IUserRepository;
+import com.bankflow.auth.business.responses.LoginUserResponse;
 import com.bankflow.auth.business.responses.RegisterUserResponse;
 import com.bankflow.auth.core.entities.User;
 import com.bankflow.auth.core.exceptions.UserAlreadyExistsException;
@@ -45,7 +45,7 @@ public class AuthService {
         return RegisterUserResponse.from(userRepository.save(user));
     }
 
-    public TokenDto login(LoginUserDto dto) {
+    public LoginUserResponse login(LoginUserDto dto) {
         User user = userRepository.findByEmail(dto.email())
                 .orElseThrow(() -> new UserNotFoundException("Invalid email"));
 
@@ -55,6 +55,6 @@ public class AuthService {
 
         String token = tokenService.generateToken(user.getId(), user.getEmail());
 
-        return new TokenDto(token);
+        return LoginUserResponse.from(token);
     }
 }

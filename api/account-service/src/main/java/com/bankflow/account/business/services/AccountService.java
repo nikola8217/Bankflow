@@ -20,10 +20,10 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
-    public AccountResponse createAccount(CreateAccountDto dto, UUID userId) {
+    public AccountResponse createAccount(CreateAccountDto dto) {
         Account account = new Account(
                 UUID.randomUUID(),
-                userId,
+                dto.userId(),
                 dto.type(),
                 AccountStatus.ACTIVE,
                 dto.currency()

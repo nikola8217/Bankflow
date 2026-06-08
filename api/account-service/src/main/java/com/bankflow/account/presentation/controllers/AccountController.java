@@ -4,6 +4,7 @@ import com.bankflow.account.business.dtos.CreateAccountDto;
 import com.bankflow.account.business.responses.AccountResponse;
 import com.bankflow.account.business.services.AccountService;
 import com.bankflow.account.presentation.httpValidations.AccountRequestValidation;
+import com.bankflow.account.presentation.requests.CreateAccountRequest;
 import com.bankflow.shared.security.SecurityUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,12 +23,10 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountDto dto) {
-        AccountRequestValidation.validateCreateAccount(dto);
+    public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountRequest request) {
+        AccountResponse account = accountService.createAccount(request.format(SecurityUtils.getCurrentUserId()));
 
-        UUID userId = SecurityUtils.getCurrentUserId();
-
-        return ResponseEntity.status(201).body(accountService.createAccount(dto, userId));
+        return ResponseEntity.status(201).body(account);
     }
 
     @GetMapping("/user")
