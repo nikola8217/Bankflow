@@ -63,7 +63,7 @@ public class TransactionAggregate {
     }
 
     public void fail(String reason) {
-        if (this.status == TransactionStatus.COMPLETED) {
+        if (this.status != TransactionStatus.PENDING) {
             throw new TransactionException("Transaction " + transactionId + " is already completed", HttpStatus.CONFLICT);
         }
 

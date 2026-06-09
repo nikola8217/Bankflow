@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "processed_events")
@@ -14,7 +13,7 @@ import java.util.UUID;
 public class ProcessedEventModel {
 
     @Id
-    private UUID transactionId;
+    private String transactionId;
 
     @Column(nullable = false)
     private LocalDateTime processedAt;

@@ -14,13 +14,13 @@ public class ProcessedEventRepositoryAdapter {
 
     private final ProcessedEventJpaRepository jpaRepository;
 
-    public boolean exists(UUID transactionId) {
-        return jpaRepository.existsById(transactionId);
+    public boolean exists(String key) {
+        return jpaRepository.existsById(key);
     }
 
-    public void save(UUID transactionId) {
+    public void save(String key) {
         ProcessedEventModel model = new ProcessedEventModel();
-        model.setTransactionId(transactionId);
+        model.setTransactionId(key);
         model.setProcessedAt(LocalDateTime.now());
         jpaRepository.save(model);
     }

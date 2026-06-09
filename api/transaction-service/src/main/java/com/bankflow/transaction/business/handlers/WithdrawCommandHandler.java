@@ -36,9 +36,9 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
     @Override
     @Transactional
     public TransactionCreatedResponse handle(WithdrawCommand command) {
-        checkIdempotency(command.idempotencyKey());
+        checkIdempotency(command.dto().idempotencyKey());
 
-        AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.token());
+        AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.dto().token());
 
         UUID transactionId = UUID.randomUUID();
 
@@ -46,7 +46,7 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
         aggregate.initiate(
                 transactionId,
                 account.id(),
-                command.userId(),
+                command.dto().userID(),
                 TransactionType.WITHDRAWAL,
                 command.dto().amount(),
                 account.currency(),
@@ -54,10 +54,11 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
         );
 
         eventStore.save(aggregate);
-        saveToOutbox(transactionId, account.id(), command.userId(),
+
+        saveToOutbox(transactionId, account.id(), command.dto().userID(),
                 TransactionType.WITHDRAWAL, command.dto().amount(), account.currency(), null);
 
-        saveIdempotencyKey(command.idempotencyKey());
+        saveIdempotencyKey(command.dto().idempotencyKey());
 
         return TransactionCreatedResponse.from(transactionId, "Withdrawal initiated successfully");
     }
