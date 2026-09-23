@@ -22,6 +22,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${AUTH_DB_PORT}:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
 
   account-service:
     build:
@@ -45,6 +47,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${ACCOUNT_DB_PORT}:5432"
+    volumes:
+      - account-db-data:/var/lib/postgresql/data
 
   transaction-service:
     build:
@@ -72,6 +76,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${TRANSACTION_DB_PORT}:5432"
+    volumes:
+      - transaction-db-data:/var/lib/postgresql/data
 
   ledger-service:
     build:
@@ -97,6 +103,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${LEDGER_DB_PORT}:5432"
+    volumes:
+      - ledger-db-data:/var/lib/postgresql/data
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -125,3 +133,9 @@ services:
       KAFKA_BROKERCONNECT: kafka:9092
     depends_on:
       - kafka
+
+volumes:
+  auth-db-data:
+  account-db-data:
+  transaction-db-data:
+  ledger-db-data:
