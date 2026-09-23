@@ -31,12 +31,11 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
-            if (tokenValidator.isTokenValid(token)) {
-                String userId = tokenValidator.extractClaims(token).getSubject();
+            tokenValidator.parse(token).ifPresent(claims -> {
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, token, Collections.emptyList());
+                        new UsernamePasswordAuthenticationToken(claims.getSubject(), token, Collections.emptyList());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            });
         }
 
         filterChain.doFilter(request, response);

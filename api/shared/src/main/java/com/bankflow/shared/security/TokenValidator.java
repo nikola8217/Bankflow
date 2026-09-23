@@ -1,39 +1,39 @@
 package com.bankflow.shared.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import java.util.UUID;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Component
 public class TokenValidator {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    private static final Logger log = LoggerFactory.getLogger(TokenValidator.class);
 
-    private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    private final SecretKey key;
+
+    public TokenValidator(@Value("${jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public Claims extractClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-    }
-
-    public boolean isTokenValid(String token) {
+    public Optional<Claims> parse(String token) {
         try {
-            Claims claims = extractClaims(token);
-            return claims.getExpiration().after(new Date());
-        } catch (Exception e) {
-            return false;
+            return Optional.of(Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload());
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Invalid JWT: {}", e.getMessage());
+            return Optional.empty();
         }
     }
 }
