@@ -13,4 +13,10 @@ public class SecurityUtils {
                 )
         );
     }
+
+    public static String getToken() {
+        return (String) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getCredentials();
+    }
 }

@@ -10,6 +10,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 
@@ -29,20 +31,19 @@ public class AccountClientAdapter implements IAccountClient {
 
     @Override
     public AccountSnapshot getAccount(UUID accountId, String token) {
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", token);
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
 
+        try {
             return restTemplate.exchange(
                     accountServiceUrl + "/api/accounts/" + accountId,
                     HttpMethod.GET,
-                    entity,
+                    new HttpEntity<>(headers),
                     AccountSnapshot.class
             ).getBody();
         } catch (HttpClientErrorException.NotFound e) {
             throw new AccountNotFoundException(accountId);
-        } catch (Exception e) {
+        } catch (ResourceAccessException | HttpServerErrorException e) {
             throw new ServiceUnavailableException("Account service");
         }
     }

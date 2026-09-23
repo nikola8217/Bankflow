@@ -9,6 +9,7 @@ com\bankflow\shared\responses\ErrorHandler.class
 com\bankflow\shared\exceptions\ValidationException.class
 com\bankflow\shared\events\TransactionApprovedEvent.class
 com\bankflow\shared\security\TokenAuthFilter.class
+com\bankflow\shared\config\CorsConfig.class
 com\bankflow\shared\enums\OutboxStatus.class
 com\bankflow\shared\exceptions\AppException.class
 com\bankflow\shared\enums\TransactionType.class

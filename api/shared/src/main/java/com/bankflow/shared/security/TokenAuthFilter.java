@@ -34,7 +34,7 @@ public class TokenAuthFilter extends OncePerRequestFilter {
             if (tokenValidator.isTokenValid(token)) {
                 String userId = tokenValidator.extractClaims(token).getSubject();
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
+                        new UsernamePasswordAuthenticationToken(userId, token, Collections.emptyList());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }

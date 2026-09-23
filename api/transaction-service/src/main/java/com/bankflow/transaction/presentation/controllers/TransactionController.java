@@ -27,39 +27,36 @@ public class TransactionController {
 
     @PostMapping("/deposit")
     public ResponseEntity<TransactionCreatedResponse> deposit(
-            @RequestHeader("Authorization") String token,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody AccountTransactionRequest request) {
 
         return ResponseEntity.status(201).body(
                 commandBus.send(new DepositCommand(
-                        request.format(token, idempotencyKey, SecurityUtils.getCurrentUserId())
+                        request.format(SecurityUtils.getToken(), idempotencyKey, SecurityUtils.getCurrentUserId())
                 ))
         );
     }
 
     @PostMapping("/withdraw")
     public ResponseEntity<TransactionCreatedResponse> withdraw(
-            @RequestHeader("Authorization") String token,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody AccountTransactionRequest request) {
 
         return ResponseEntity.status(201).body(
                 commandBus.send(new WithdrawCommand(
-                        request.format(token, idempotencyKey, SecurityUtils.getCurrentUserId())
+                        request.format(SecurityUtils.getToken(), idempotencyKey, SecurityUtils.getCurrentUserId())
                 ))
         );
     }
 
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> transfer(
-            @RequestHeader("Authorization") String token,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody TransferRequest request) {
 
         return ResponseEntity.status(201).body(
                 commandBus.send(new TransferCommand(
-                        request.format(token, idempotencyKey, SecurityUtils.getCurrentUserId())
+                        request.format(SecurityUtils.getToken(), idempotencyKey, SecurityUtils.getCurrentUserId())
                 ))
         );
     }
