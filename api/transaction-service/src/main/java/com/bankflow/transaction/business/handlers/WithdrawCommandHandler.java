@@ -38,7 +38,7 @@ public class WithdrawCommandHandler extends BaseTransactionHandler implements Co
     public TransactionCreatedResponse handle(WithdrawCommand command) {
         checkIdempotency(command.dto().idempotencyKey());
 
-        AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.dto().token());
+        AccountSnapshot account = getOwnedActiveAccount(command.dto().accountId(), command.dto().userID());
 
         UUID transactionId = UUID.randomUUID();
 

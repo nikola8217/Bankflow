@@ -38,11 +38,11 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AccountResponse> getAccount(@PathVariable UUID id) {
-        return ResponseEntity.ok(accountService.getAccount(id));
+        return ResponseEntity.ok(accountService.getAccount(id, SecurityUtils.getCurrentUserId()));
     }
 
     @PatchMapping("/{id}/close")
     public ResponseEntity<AccountResponse> closeAccount(@PathVariable UUID id) {
-        return ResponseEntity.ok(accountService.closeAccount(id));
+        return ResponseEntity.ok(accountService.closeAccount(id, SecurityUtils.getCurrentUserId()));
     }
 }
