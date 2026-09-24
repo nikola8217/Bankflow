@@ -20,12 +20,15 @@ public class UserMapper {
     }
 
     public User toDomain(UserModel model) {
-        return new User(
+        return User.restore(
                 model.getId(),
                 model.getEmail(),
                 model.getPassword(),
                 model.getFirstName(),
-                model.getLastName()
+                model.getLastName(),
+                model.isActive(),
+                model.getCreatedAt(),
+                model.getUpdatedAt()
         );
     }
 }

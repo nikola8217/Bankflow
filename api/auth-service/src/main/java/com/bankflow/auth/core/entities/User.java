@@ -18,13 +18,23 @@ public class User {
     private final LocalDateTime updatedAt;
 
     public User(UUID id, String email, String password, String firstName, String lastName) {
+        this(id, email, password, firstName, lastName, true, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    private User(UUID id, String email, String password, String firstName, String lastName,
+                 boolean isActive, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.isActive = true;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.isActive = isActive;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static User restore(UUID id, String email, String password, String firstName, String lastName,
+                               boolean isActive, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        return new User(id, email, password, firstName, lastName, isActive, createdAt, updatedAt);
     }
 }

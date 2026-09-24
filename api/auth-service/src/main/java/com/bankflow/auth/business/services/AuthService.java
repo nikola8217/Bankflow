@@ -7,11 +7,12 @@ import com.bankflow.auth.business.ports.IUserRepository;
 import com.bankflow.auth.business.responses.LoginUserResponse;
 import com.bankflow.auth.business.responses.RegisterUserResponse;
 import com.bankflow.auth.core.entities.User;
+import com.bankflow.auth.core.exceptions.InvalidCredentialsException;
 import com.bankflow.auth.core.exceptions.UserAlreadyExistsException;
-import com.bankflow.auth.core.exceptions.UserNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,11 +21,13 @@ public class AuthService {
     private final IUserRepository userRepository;
     private final ITokenService tokenService;
     private final PasswordEncoder passwordEncoder;
+    private final String dummyHash;
 
     public AuthService(IUserRepository userRepository, ITokenService tokenService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.tokenService = tokenService;
         this.passwordEncoder = passwordEncoder;
+        this.dummyHash = passwordEncoder.encode("timing-attack-protection");
     }
 
     public RegisterUserResponse register(RegisterUserDto dto) {
@@ -46,14 +49,16 @@ public class AuthService {
     }
 
     public LoginUserResponse login(LoginUserDto dto) {
-        User user = userRepository.findByEmail(dto.email())
-                .orElseThrow(() -> new UserNotFoundException("Invalid email"));
+        Optional<User> user = userRepository.findByEmail(dto.email());
 
-        if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
-            throw new UserNotFoundException("Invalid password");
+        String hash = user.map(User::getPassword).orElse(dummyHash);
+        boolean passwordMatches = passwordEncoder.matches(dto.password(), hash);
+
+        if (user.isEmpty() || !passwordMatches || !user.get().isActive()) {
+            throw new InvalidCredentialsException();
         }
 
-        String token = tokenService.generateToken(user.getId(), user.getEmail());
+        String token = tokenService.generateToken(user.get().getId(), user.get().getEmail());
 
         return LoginUserResponse.from(token);
     }
