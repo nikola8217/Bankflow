@@ -9,6 +9,7 @@ public class BalanceMapper {
 
     public BalanceModel toModel(Balance balance) {
         BalanceModel model = new BalanceModel();
+        model.setUserId(balance.getUserId());
         model.setAccountId(balance.getAccountId());
         model.setAmount(balance.getAmount());
         model.setCurrency(balance.getCurrency());
@@ -18,6 +19,7 @@ public class BalanceMapper {
 
     public Balance toDomain(BalanceModel model) {
         return new Balance(
+                model.getUserId(),
                 model.getAccountId(),
                 model.getAmount(),
                 model.getCurrency()

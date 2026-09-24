@@ -1,12 +1,10 @@
 package com.bankflow.ledger.controllers;
 
-import com.bankflow.ledger.business.ports.IBalanceRepository;
-import com.bankflow.ledger.business.ports.ITransactionHistoryRepository;
+import com.bankflow.ledger.business.services.LedgerQueryService;
 import com.bankflow.ledger.core.entities.Balance;
 import com.bankflow.ledger.core.entities.TransactionHistory;
-import com.bankflow.shared.exceptions.AppException;
+import com.bankflow.shared.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,21 +16,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LedgerController {
 
-    private final IBalanceRepository balanceRepository;
-    private final ITransactionHistoryRepository historyRepository;
+    private final LedgerQueryService queryService;
 
     @GetMapping("/balance/{accountId}")
     public ResponseEntity<Balance> getBalance(@PathVariable UUID accountId) {
-        Balance balance = balanceRepository.findByAccountId(accountId)
-                .orElseThrow(() -> new AppException(
-                        "Balance not found for account: " + accountId,
-                        HttpStatus.NOT_FOUND
-                ) {});
-        return ResponseEntity.ok(balance);
+        return ResponseEntity.ok(queryService.getBalance(accountId, SecurityUtils.getCurrentUserId()));
     }
 
     @GetMapping("/history/{accountId}")
     public ResponseEntity<List<TransactionHistory>> getHistory(@PathVariable UUID accountId) {
-        return ResponseEntity.ok(historyRepository.findAllByAccountId(accountId));
+        return ResponseEntity.ok(queryService.getHistory(accountId, SecurityUtils.getCurrentUserId()));
     }
 }

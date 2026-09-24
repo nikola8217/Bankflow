@@ -1,6 +1,7 @@
 package com.bankflow.account.business.services;
 
 import com.bankflow.account.business.dtos.CreateAccountDto;
+import com.bankflow.account.business.ports.IAccountEventPublisher;
 import com.bankflow.account.business.ports.IAccountRepository;
 import com.bankflow.account.business.responses.AccountResponse;
 import com.bankflow.account.core.entities.Account;
@@ -8,6 +9,7 @@ import com.bankflow.account.core.enums.AccountStatus;
 import com.bankflow.account.core.exceptions.AccountClosedException;
 import com.bankflow.account.core.exceptions.AccountNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,11 +17,15 @@ import java.util.UUID;
 @Service
 public class AccountService {
     private final IAccountRepository accountRepository;
+    private final IAccountEventPublisher eventPublisher;
 
-    public AccountService(IAccountRepository accountRepository) {
+    public AccountService(IAccountRepository accountRepository, IAccountEventPublisher eventPublisher) {
+
         this.accountRepository = accountRepository;
+        this.eventPublisher = eventPublisher;
     }
 
+    @Transactional
     public AccountResponse createAccount(CreateAccountDto dto) {
         Account account = new Account(
                 UUID.randomUUID(),
@@ -29,7 +35,10 @@ public class AccountService {
                 dto.currency()
         );
 
-        return AccountResponse.from(accountRepository.create(account));
+        Account saved = accountRepository.create(account);
+        eventPublisher.accountCreated(saved);
+
+        return AccountResponse.from(saved);
     }
 
     public List<AccountResponse> getUserAccounts(UUID userId) {

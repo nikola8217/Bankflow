@@ -10,4 +10,5 @@ public interface IBalanceRepository {
     Optional<Balance> findByAccountId(UUID accountId);
     void ensureExists(UUID accountId, String currency);
     Optional<Balance> findByAccountIdForUpdate(UUID accountId);
+    void registerAccount(UUID accountId, UUID userId, String currency);
 }

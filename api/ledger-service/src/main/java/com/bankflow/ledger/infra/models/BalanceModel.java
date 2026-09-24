@@ -18,6 +18,9 @@ public class BalanceModel {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column
+    private UUID userId;
+
     @Column(nullable = false, unique = true)
     private UUID accountId;
 

@@ -1,6 +1,7 @@
 package com.bankflow.ledger.infra.consumers;
 
 import com.bankflow.ledger.business.services.LedgerService;
+import com.bankflow.shared.events.AccountCreatedEvent;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,5 +19,11 @@ public class TransactionEventConsumer {
     public void consume(TransactionCreatedEvent event) {
         log.info("Received TransactionCreatedEvent for transaction: {}", event.transactionId());
         ledgerService.process(event);
+    }
+
+    @KafkaListener(topics = "account-created", groupId = "ledger-service")
+    public void consumeAccountCreated(AccountCreatedEvent event) {
+        log.info("Received AccountCreatedEvent for account: {}", event.accountId());
+        ledgerService.registerAccount(event);
     }
 }

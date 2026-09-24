@@ -26,4 +26,14 @@ public interface BalanceJpaRepository extends JpaRepository<BalanceModel, UUID> 
             ON CONFLICT (account_id) DO NOTHING
             """, nativeQuery = true)
     void insertIfMissing(@Param("accountId") UUID accountId, @Param("currency") String currency);
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO balances (id, user_id, account_id, amount, currency, updated_at)
+            VALUES (gen_random_uuid(), :userId, :accountId, 0, :currency, now())
+            ON CONFLICT (account_id) DO UPDATE SET user_id = EXCLUDED.user_id
+            """, nativeQuery = true)
+    void upsertAccount(@Param("accountId") UUID accountId,
+                       @Param("userId") UUID userId,
+                       @Param("currency") String currency);
 }

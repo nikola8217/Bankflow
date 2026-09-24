@@ -8,12 +8,14 @@ import java.util.UUID;
 
 @Getter
 public class Balance {
+    private final UUID userId;
     private final UUID accountId;
     private BigDecimal amount;
     private final String currency;
     private LocalDateTime updatedAt;
 
-    public Balance(UUID accountId, BigDecimal amount, String currency) {
+    public Balance(UUID userId, UUID accountId, BigDecimal amount, String currency) {
+        this.userId = userId;
         this.accountId = accountId;
         this.amount = amount;
         this.currency = currency;

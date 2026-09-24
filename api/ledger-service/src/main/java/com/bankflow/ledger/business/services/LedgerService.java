@@ -8,6 +8,7 @@ import com.bankflow.ledger.core.entities.Balance;
 import com.bankflow.ledger.core.entities.OutboxEntry;
 import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.shared.enums.TransactionStatus;
+import com.bankflow.shared.events.AccountCreatedEvent;
 import com.bankflow.shared.events.TransactionApprovedEvent;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.shared.events.TransactionDeclinedEvent;
@@ -128,5 +129,11 @@ public class LedgerService {
                 .status(OutboxStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build());
+    }
+
+    @Transactional
+    public void registerAccount(AccountCreatedEvent event) {
+        balanceRepository.registerAccount(event.accountId(), event.userId(), event.currency());
+        log.info("Account registered: {} (owner {})", event.accountId(), event.userId());
     }
 }

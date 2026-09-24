@@ -46,4 +46,9 @@ public class BalanceRepositoryAdapter implements IBalanceRepository {
         return jpaRepository.findByAccountIdForUpdate(accountId)
                 .map(mapper::toDomain);
     }
+
+    @Override
+    public void registerAccount(UUID accountId, UUID userId, String currency) {
+        jpaRepository.upsertAccount(accountId, userId, currency);
+    }
 }
