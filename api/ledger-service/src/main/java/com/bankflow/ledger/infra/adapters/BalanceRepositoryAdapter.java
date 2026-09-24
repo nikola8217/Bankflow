@@ -35,4 +35,15 @@ public class BalanceRepositoryAdapter implements IBalanceRepository {
         return jpaRepository.findByAccountId(accountId)
                 .map(mapper::toDomain);
     }
+
+    @Override
+    public void ensureExists(UUID accountId, String currency) {
+        jpaRepository.insertIfMissing(accountId, currency);
+    }
+
+    @Override
+    public Optional<Balance> findByAccountIdForUpdate(UUID accountId) {
+        return jpaRepository.findByAccountIdForUpdate(accountId)
+                .map(mapper::toDomain);
+    }
 }

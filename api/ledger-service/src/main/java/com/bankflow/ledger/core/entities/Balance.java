@@ -20,12 +20,19 @@ public class Balance {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public boolean canDebit(BigDecimal amount) {
+        return this.amount.compareTo(amount) >= 0;
+    }
+
     public void credit(BigDecimal amount) {
         this.amount = this.amount.add(amount);
         this.updatedAt = LocalDateTime.now();
     }
 
     public void debit(BigDecimal amount) {
+        if (!canDebit(amount)) {
+            throw new IllegalStateException("Insufficient funds for account " + accountId);
+        }
         this.amount = this.amount.subtract(amount);
         this.updatedAt = LocalDateTime.now();
     }
