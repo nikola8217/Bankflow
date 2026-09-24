@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -36,7 +37,8 @@ public class OutboxWorker {
                         ? jsonSerializer.deserialize(entry.getPayload().toString(), TransactionApprovedEvent.class)
                         : jsonSerializer.deserialize(entry.getPayload().toString(), TransactionDeclinedEvent.class);
 
-                kafkaTemplate.send(topic, entry.getAggregateId().toString(), event);
+                kafkaTemplate.send(topic, entry.getAggregateId().toString(), event)
+                        .get(10, TimeUnit.SECONDS);
                 outboxRepository.markAsProcessed(entry.getId());
                 log.info("Outbox entry processed: {}", entry.getId());
             } catch (Exception e) {
