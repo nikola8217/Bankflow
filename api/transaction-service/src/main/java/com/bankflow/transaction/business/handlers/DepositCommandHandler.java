@@ -38,7 +38,7 @@ public class DepositCommandHandler extends BaseTransactionHandler implements Com
     public TransactionCreatedResponse handle(DepositCommand command) {
         checkIdempotency(command.dto().idempotencyKey());
 
-        AccountSnapshot account = getAccountSnapshot(command.dto().accountId(), command.dto().token());
+        AccountSnapshot account = getOwnedActiveAccount(command.dto().accountId(), command.dto().userID());
 
         UUID transactionId = UUID.randomUUID();
 

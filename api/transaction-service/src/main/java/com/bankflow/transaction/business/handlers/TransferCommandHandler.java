@@ -40,8 +40,8 @@ public class TransferCommandHandler extends BaseTransactionHandler implements Co
     public TransferResponse handle(TransferCommand command) {
         checkIdempotency(command.dto().idempotencyKey());
 
-        AccountSnapshot fromAccount = getAccountSnapshot(command.dto().fromAccountId(), command.dto().token());
-        AccountSnapshot toAccount = getAccountSnapshot(command.dto().toAccountId(), command.dto().token());
+        AccountSnapshot fromAccount = getOwnedActiveAccount(command.dto().fromAccountId(), command.dto().userId());
+        AccountSnapshot toAccount = getActiveAccount(command.dto().toAccountId());
 
         if (!fromAccount.currency().equals(toAccount.currency())) {
             throw new TransactionException(

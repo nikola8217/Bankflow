@@ -8,6 +8,7 @@ import com.bankflow.transaction.business.ports.IOutboxRepository;
 import com.bankflow.transaction.core.entities.OutboxEntry;
 import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.transaction.core.exceptions.AccountNotActiveException;
+import com.bankflow.transaction.core.exceptions.AccountNotFoundException;
 import com.bankflow.transaction.core.exceptions.TransactionException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import lombok.RequiredArgsConstructor;
@@ -34,12 +35,25 @@ public abstract class BaseTransactionHandler {
         idempotencyRepository.save(idempotencyKey);
     }
 
-    protected AccountSnapshot getAccountSnapshot(UUID accountId, String token) {
-        AccountSnapshot account = accountClient.getAccount(accountId, token);
-        if (!account.status().equals("ACTIVE")) {
-            throw new AccountNotActiveException(accountId);
-        }
+    protected AccountSnapshot getActiveAccount(UUID accountId) {
+        AccountSnapshot account = accountClient.getAccount(accountId);
+        ensureActive(account);
         return account;
+    }
+
+    protected AccountSnapshot getOwnedActiveAccount(UUID accountId, UUID userId) {
+        AccountSnapshot account = accountClient.getAccount(accountId);
+        if (!account.userId().equals(userId)) {
+            throw new AccountNotFoundException(accountId);
+        }
+        ensureActive(account);
+        return account;
+    }
+
+    private void ensureActive(AccountSnapshot account) {
+        if (!"ACTIVE".equals(account.status())) {
+            throw new AccountNotActiveException(account.id());
+        }
     }
 
     protected void saveToOutbox(UUID transactionId, UUID accountId, UUID userId,

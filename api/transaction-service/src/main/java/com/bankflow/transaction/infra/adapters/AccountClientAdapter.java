@@ -25,18 +25,21 @@ public class AccountClientAdapter implements IAccountClient {
     @Value("${account.service.url}")
     private String accountServiceUrl;
 
+    @Value("${internal.api-key}")
+    private String internalApiKey;
+
     public AccountClientAdapter(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     @Override
-    public AccountSnapshot getAccount(UUID accountId, String token) {
+    public AccountSnapshot getAccount(UUID accountId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
+        headers.set("X-Internal-Api-Key", internalApiKey);
 
         try {
             return restTemplate.exchange(
-                    accountServiceUrl + "/api/accounts/" + accountId,
+                    accountServiceUrl + "/internal/accounts/" + accountId,
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
                     AccountSnapshot.class

@@ -26,6 +26,10 @@ public class TransactionRequestsValidation {
             throw new ValidationException("To account id is required");
         }
 
+        if (request.getFromAccountId().equals(request.getToAccountId())) {
+            throw new ValidationException("Cannot transfer to the same account");
+        }
+
         if (request.getAmount() == null || request.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new ValidationException("Amount must be greater than zero");
         }
