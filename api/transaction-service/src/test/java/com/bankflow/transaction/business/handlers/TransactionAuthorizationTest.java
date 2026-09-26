@@ -5,10 +5,7 @@ import com.bankflow.transaction.business.commands.TransferCommand;
 import com.bankflow.transaction.business.commands.WithdrawCommand;
 import com.bankflow.transaction.business.dtos.AccountTransactionDto;
 import com.bankflow.transaction.business.dtos.TransferDto;
-import com.bankflow.transaction.business.ports.IAccountClient;
-import com.bankflow.transaction.business.ports.IEventStore;
-import com.bankflow.transaction.business.ports.IIdempotencyRepository;
-import com.bankflow.transaction.business.ports.IOutboxRepository;
+import com.bankflow.transaction.business.ports.*;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
 import com.bankflow.transaction.core.entities.OutboxEntry;
 import com.bankflow.transaction.core.exceptions.AccountNotFoundException;
@@ -89,32 +86,30 @@ class TransactionAuthorizationTest  {
         InMemoryEventStore eventStore = new InMemoryEventStore();
         InMemoryIdempotencyRepository idempotency = new InMemoryIdempotencyRepository();
 
-        depositHandler = new DepositCommandHandler(accountClient, outboxRepository, idempotency, eventStore);
-        withdrawHandler = new WithdrawCommandHandler(accountClient, outboxRepository, idempotency, eventStore);
-        transferHandler = new TransferCommandHandler(accountClient, outboxRepository, idempotency, eventStore);
+        ITransactionRunner runner = Runnable::run;
+
+        depositHandler = new DepositCommandHandler(accountClient, outboxRepository, idempotency, runner, eventStore);
+        withdrawHandler = new WithdrawCommandHandler(accountClient, outboxRepository, idempotency, runner, eventStore);
+        transferHandler = new TransferCommandHandler(accountClient, outboxRepository, idempotency, runner, eventStore);
     }
 
     @Test
     void ownerCanWithdrawFromOwnAccount() {
         withdrawHandler.handle(new WithdrawCommand(withdraw(anasAccount, ana)));
 
-        assertThat(outbox).hasSize(1);   // poruka ide Ledger-u
+        assertThat(outbox).hasSize(1);
     }
 
     @Test
     void otherUserCannotWithdrawFromSomeoneElsesAccount() {
-        // Jelena pokušava da podigne novac sa Aninog računa
         assertThatThrownBy(() -> withdrawHandler.handle(new WithdrawCommand(withdraw(anasAccount, jelena))))
                 .isInstanceOf(AccountNotFoundException.class);
 
-        // Najvažnije: NIŠTA nije otišlo u outbox, pa Ledger nikad
-        // neće ni saznati za ovaj pokušaj i novac se ne dira.
         assertThat(outbox).isEmpty();
     }
 
     @Test
     void otherUserCannotDepositToSomeoneElsesAccount() {
-        // Dogovor: uplata samo na svoj račun; tuđem se plaća transferom.
         assertThatThrownBy(() -> depositHandler.handle(new DepositCommand(withdraw(anasAccount, jelena))))
                 .isInstanceOf(AccountNotFoundException.class);
 
