@@ -41,11 +41,7 @@ class TransactionBoundaryTest {
     private final RecordingTransactionRunner runner = new RecordingTransactionRunner();
     private final List<OutboxEntry> outbox = new ArrayList<>();
 
-    private final IIdempotencyRepository idempotency = new IIdempotencyRepository() {
-        final Set<String> keys = new HashSet<>();
-        public boolean exists(String key) { return keys.contains(key); }
-        public void save(String key) { keys.add(key); }
-    };
+    private final IIdempotencyRepository idempotency = new InMemoryIdempotencyRepository();
 
     private final IEventStore eventStore = new IEventStore() {
         public void save(TransactionAggregate aggregate) { aggregate.pullDomainEvents(); }
