@@ -1,5 +1,6 @@
 package com.bankflow.transaction.business.handlers;
 
+import com.bankflow.shared.enums.TransactionStatus;
 import com.bankflow.transaction.business.commands.CompleteTransactionCommand;
 import com.bankflow.transaction.business.ports.IEventStore;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
@@ -28,6 +29,11 @@ public class CompleteTransactionHandler implements CommandHandler<CompleteTransa
                 .orElseThrow(() -> new RuntimeException(
                         "Transaction not found: " + command.transactionId()
                 ));
+
+        if (aggregate.getStatus() == TransactionStatus.COMPLETED) {
+            log.info("Transaction {} already completed, ignoring duplicate event", command.transactionId());
+            return null;
+        }
 
         aggregate.complete();
         eventStore.save(aggregate);
