@@ -10,9 +10,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -21,38 +22,51 @@ public class OutboxWorker {
     private static final Logger log = LoggerFactory.getLogger(OutboxWorker.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "account-created";
+    private static final int BATCH_SIZE = 50;
+    private static final int RETENTION_DAYS = 7;
 
     private final OutboxJpaRepository outboxRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final TransactionTemplate transactionTemplate;
 
-    public OutboxWorker(OutboxJpaRepository outboxRepository, KafkaTemplate<String, Object> kafkaTemplate) {
+    public OutboxWorker(OutboxJpaRepository outboxRepository,
+                        KafkaTemplate<String, Object> kafkaTemplate,
+                        PlatformTransactionManager transactionManager) {
         this.outboxRepository = outboxRepository;
         this.kafkaTemplate = kafkaTemplate;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @Scheduled(fixedDelay = 5000)
     public void process() {
-        List<OutboxModel> pending = outboxRepository.findByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING);
+        transactionTemplate.executeWithoutResult(status -> {
+            for (OutboxModel entry : outboxRepository.lockNextBatch(BATCH_SIZE)) {
+                try {
+                    AccountCreatedEvent event = MAPPER.readValue(entry.getPayload(), AccountCreatedEvent.class);
 
-        for (OutboxModel entry : pending) {
-            try {
-                AccountCreatedEvent event = MAPPER.readValue(entry.getPayload(), AccountCreatedEvent.class);
+                    kafkaTemplate.send(TOPIC, event.accountId().toString(), event)
+                            .get(10, TimeUnit.SECONDS);
 
-                kafkaTemplate.send(TOPIC, event.accountId().toString(), event)
-                        .get(10, TimeUnit.SECONDS);
+                    entry.setStatus(OutboxStatus.PROCESSED);
+                    entry.setProcessedAt(LocalDateTime.now());
 
-                entry.setStatus(OutboxStatus.PROCESSED);
-                entry.setProcessedAt(LocalDateTime.now());
-                outboxRepository.save(entry);
-
-                log.info("Outbox entry processed: {}", entry.getId());
-            } catch (Exception e) {
-                if (e instanceof InterruptedException) {
-                    Thread.currentThread().interrupt();
+                    log.info("Outbox entry processed: {}", entry.getId());
+                } catch (Exception e) {
+                    if (e instanceof InterruptedException) {
+                        Thread.currentThread().interrupt();
+                    }
+                    log.error("Failed to process outbox entry: {}", entry.getId(), e);
+                    break;
                 }
-                log.error("Failed to process outbox entry: {}", entry.getId(), e);
-                break;
             }
-        }
+        });
+    }
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void cleanup() {
+        Integer deleted = transactionTemplate.execute(status ->
+                outboxRepository.deleteByStatusAndProcessedAtBefore(
+                        OutboxStatus.PROCESSED, LocalDateTime.now().minusDays(RETENTION_DAYS)));
+        log.info("Outbox cleanup: deleted {} processed entries", deleted);
     }
 }

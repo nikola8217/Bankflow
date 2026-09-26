@@ -9,8 +9,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 public abstract class AbstractIntegrationTest {
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:16");
-    static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.8.0");
+    protected static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:16");
+    protected static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.8.0");
 
     static {
         POSTGRES.start();
