@@ -23,19 +23,4 @@ public class OutboxRepositoryAdapter implements IOutboxRepository {
     public void save(OutboxEntry entry) {
         outboxJpaRepository.save(outboxMapper.toModel(entry));
     }
-
-    public List<OutboxEntry> findPending() {
-        return outboxJpaRepository.findByStatus(OutboxStatus.PENDING)
-                .stream()
-                .map(outboxMapper::toDomain)
-                .toList();
-    }
-
-    public void markAsProcessed(UUID id) {
-        outboxJpaRepository.findById(id).ifPresent(model -> {
-            model.setStatus(OutboxStatus.PROCESSED);
-            model.setProcessedAt(LocalDateTime.now());
-            outboxJpaRepository.save(model);
-        });
-    }
 }
