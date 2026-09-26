@@ -33,7 +33,7 @@ public class OutboxWorker {
                         TransactionCreatedEvent.class
                 );
 
-                kafkaTemplate.send("transaction-created", entry.getAggregateId().toString(), event)
+                kafkaTemplate.send("transaction-created", event.accountId().toString(), event)
                         .get(10, TimeUnit.SECONDS);
 
                 outboxRepository.markAsProcessed(entry.getId());
