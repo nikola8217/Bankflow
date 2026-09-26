@@ -5,6 +5,7 @@ import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
+import com.bankflow.transaction.business.ports.ITransactionRunner;
 import com.bankflow.transaction.core.entities.OutboxEntry;
 import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.transaction.core.exceptions.AccountNotActiveException;
@@ -24,6 +25,7 @@ public abstract class BaseTransactionHandler {
     protected final IAccountClient accountClient;
     protected final IOutboxRepository outboxRepository;
     protected final IIdempotencyRepository idempotencyRepository;
+    protected final ITransactionRunner transactionRunner;
 
     protected void checkIdempotency(String idempotencyKey) {
         if (idempotencyRepository.exists(idempotencyKey)) {
@@ -70,6 +72,7 @@ public abstract class BaseTransactionHandler {
                 .status(OutboxStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
+
         outboxRepository.save(entry);
     }
 }

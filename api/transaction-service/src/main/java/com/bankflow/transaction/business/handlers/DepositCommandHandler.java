@@ -2,29 +2,32 @@ package com.bankflow.transaction.business.handlers;
 
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.commands.DepositCommand;
+import com.bankflow.transaction.business.dtos.AccountTransactionDto;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IEventStore;
 import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
+import com.bankflow.transaction.business.ports.ITransactionRunner;
 import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
 import com.bankflow.transaction.core.commands.CommandHandler;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Component
-public class DepositCommandHandler extends BaseTransactionHandler implements CommandHandler<DepositCommand, TransactionCreatedResponse> {
+public class DepositCommandHandler extends BaseTransactionHandler
+        implements CommandHandler<DepositCommand, TransactionCreatedResponse> {
 
     private final IEventStore eventStore;
 
     public DepositCommandHandler(IAccountClient accountClient,
                                  IOutboxRepository outboxRepository,
                                  IIdempotencyRepository idempotencyRepository,
+                                 ITransactionRunner transactionRunner,
                                  IEventStore eventStore) {
-        super(accountClient, outboxRepository, idempotencyRepository);
+        super(accountClient, outboxRepository, idempotencyRepository, transactionRunner);
         this.eventStore = eventStore;
     }
 
@@ -34,32 +37,26 @@ public class DepositCommandHandler extends BaseTransactionHandler implements Com
     }
 
     @Override
-    @Transactional
     public TransactionCreatedResponse handle(DepositCommand command) {
-        checkIdempotency(command.dto().idempotencyKey());
+        AccountTransactionDto dto = command.dto();
 
-        AccountSnapshot account = getOwnedActiveAccount(command.dto().accountId(), command.dto().userID());
+        checkIdempotency(dto.idempotencyKey());
+
+        AccountSnapshot account = getOwnedActiveAccount(dto.accountId(), dto.userID());
 
         UUID transactionId = UUID.randomUUID();
+        transactionRunner.inTransaction(() -> {
+            TransactionAggregate aggregate = new TransactionAggregate();
+            aggregate.initiate(transactionId, account.id(), dto.userID(),
+                    TransactionType.DEPOSIT, dto.amount(), account.currency(), null);
+            aggregate.complete();
+            eventStore.save(aggregate);
 
-        TransactionAggregate aggregate = new TransactionAggregate();
-        aggregate.initiate(
-                transactionId,
-                account.id(),
-                command.dto().userID(),
-                TransactionType.DEPOSIT,
-                command.dto().amount(),
-                account.currency(),
-                null
-        );
-        aggregate.complete();
+            saveToOutbox(transactionId, account.id(), dto.userID(),
+                    TransactionType.DEPOSIT, dto.amount(), account.currency(), null);
 
-        eventStore.save(aggregate);
-
-        saveToOutbox(transactionId, account.id(), command.dto().userID(),
-                TransactionType.DEPOSIT, command.dto().amount(), account.currency(), null);
-
-        saveIdempotencyKey(command.dto().idempotencyKey());
+            saveIdempotencyKey(dto.idempotencyKey());
+        });
 
         return TransactionCreatedResponse.from(transactionId, "Deposit initiated successfully");
     }
