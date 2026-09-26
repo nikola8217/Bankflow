@@ -1,5 +1,6 @@
 package com.bankflow.transaction.business.handlers;
 
+import com.bankflow.shared.enums.TransactionStatus;
 import com.bankflow.transaction.business.commands.FailTransactionCommand;
 import com.bankflow.transaction.business.ports.IEventStore;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
@@ -29,8 +30,12 @@ public class FailTransactionHandler implements CommandHandler<FailTransactionCom
                         "Transaction not found: " + command.transactionId()
                 ));
 
-        aggregate.fail(command.reason());
+        if (aggregate.getStatus() == TransactionStatus.FAILED) {
+            log.info("Transaction {} already failed, ignoring duplicate event", command.transactionId());
+            return null;
+        }
 
+        aggregate.fail(command.reason());
         eventStore.save(aggregate);
 
         log.info("Transaction failed: {}", command.transactionId());
