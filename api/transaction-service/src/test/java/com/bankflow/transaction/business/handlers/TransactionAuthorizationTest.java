@@ -47,20 +47,6 @@ class TransactionAuthorizationTest  {
         }
     }
 
-    static class InMemoryIdempotencyRepository implements IIdempotencyRepository {
-        final Set<String> keys = new HashSet<>();
-
-        @Override
-        public boolean exists(String key) {
-            return keys.contains(key);
-        }
-
-        @Override
-        public void save(String key) {
-            keys.add(key);
-        }
-    }
-
     private final List<OutboxEntry> outbox = new ArrayList<>();
 
     private final IOutboxRepository outboxRepository = outbox::add;

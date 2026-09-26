@@ -8,6 +8,17 @@ import com.bankflow.transaction.presentation.requests.TransferRequest;
 
 public class TransactionRequestsValidation {
 
+    private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 255;
+
+    public static void validateIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null) {
+            return;
+        }
+        if (idempotencyKey.isBlank() || idempotencyKey.length() > MAX_IDEMPOTENCY_KEY_LENGTH) {
+            throw new ValidationException("Idempotency-Key must be 1-" + MAX_IDEMPOTENCY_KEY_LENGTH + " characters");
+        }
+    }
+
     public static void validateAmount(AccountTransactionRequest request) {
         if (request.getAccountId() == null) {
             throw new ValidationException("Account id is required");

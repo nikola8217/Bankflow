@@ -16,6 +16,7 @@ public class AccountTransactionRequest {
 
     public AccountTransactionDto format(String token, String idempotencyKey, UUID userId) {
         TransactionRequestsValidation.validateAmount(this);
+        TransactionRequestsValidation.validateIdempotencyKey(idempotencyKey);
         return new AccountTransactionDto(
                 accountId,
                 amount,

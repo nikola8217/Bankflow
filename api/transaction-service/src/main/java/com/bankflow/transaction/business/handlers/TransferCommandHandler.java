@@ -11,11 +11,13 @@ import com.bankflow.transaction.business.ports.ITransactionRunner;
 import com.bankflow.transaction.business.responses.TransferResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
 import com.bankflow.transaction.core.commands.CommandHandler;
+import com.bankflow.transaction.core.exceptions.IdempotencyKeyConflictException;
 import com.bankflow.transaction.core.exceptions.TransactionException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -41,10 +43,14 @@ public class TransferCommandHandler extends BaseTransactionHandler
     @Override
     public TransferResponse handle(TransferCommand command) {
         TransferDto dto = command.dto();
+        String fingerprint = fingerprint(TransactionType.TRANSFER,
+                dto.fromAccountId(), dto.toAccountId(), dto.amount());
 
-        checkIdempotency(dto.idempotencyKey());
+        Optional<UUID> previous = findPreviousTransaction(dto.userId(), dto.idempotencyKey(), fingerprint);
+        if (previous.isPresent()) {
+            return response(previous.get(), dto);
+        }
 
-        // Oba HTTP poziva van transakcije
         AccountSnapshot fromAccount = getOwnedActiveAccount(dto.fromAccountId(), dto.userId());
         AccountSnapshot toAccount = getActiveAccount(dto.toAccountId());
 
@@ -56,18 +62,27 @@ public class TransferCommandHandler extends BaseTransactionHandler
         }
 
         UUID transactionId = UUID.randomUUID();
-        transactionRunner.inTransaction(() -> {
-            TransactionAggregate aggregate = new TransactionAggregate();
-            aggregate.initiate(transactionId, fromAccount.id(), dto.userId(),
-                    TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
-            eventStore.save(aggregate);
+        try {
+            transactionRunner.inTransaction(() -> {
+                saveIdempotencyKey(dto.userId(), dto.idempotencyKey(), fingerprint, transactionId);
 
-            saveToOutbox(transactionId, fromAccount.id(), dto.userId(),
-                    TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
+                TransactionAggregate aggregate = new TransactionAggregate();
+                aggregate.initiate(transactionId, fromAccount.id(), dto.userId(),
+                        TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
+                eventStore.save(aggregate);
 
-            saveIdempotencyKey(dto.idempotencyKey());
-        });
+                saveToOutbox(transactionId, fromAccount.id(), dto.userId(),
+                        TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
+            });
+        } catch (IdempotencyKeyConflictException conflict) {
+            return response(transactionOfConcurrentDuplicate(
+                    dto.userId(), dto.idempotencyKey(), fingerprint, conflict), dto);
+        }
 
+        return response(transactionId, dto);
+    }
+
+    private TransferResponse response(UUID transactionId, TransferDto dto) {
         return TransferResponse.from(transactionId, dto.toAccountId(), "Transfer initiated successfully");
     }
 }

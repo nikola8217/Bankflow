@@ -17,6 +17,7 @@ public class TransferRequest {
 
     public TransferDto format(String token, String idempotencyKey, UUID userId) {
         TransactionRequestsValidation.validateTransferRequest(this);
+        TransactionRequestsValidation.validateIdempotencyKey(idempotencyKey);
         return new TransferDto(
                 fromAccountId,
                 toAccountId,
