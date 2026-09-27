@@ -1,17 +1,20 @@
-package com.bankflow.shared.responses;
+package com.bankflow.shared.handlers;
 
 import com.bankflow.shared.exceptions.AppException;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
+import java.util.Objects;
 
 @RestControllerAdvice
 public class ErrorHandler {
@@ -32,6 +35,13 @@ public class ErrorHandler {
                 .body(Map.of("error", "Invalid value in request body"));
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "Invalid value for '" + ex.getName() + "'"));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, String>> handleUnauthorized(AuthenticationException ex) {
         return ResponseEntity
@@ -48,8 +58,17 @@ public class ErrorHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneral(Exception ex) {
+        if (ex instanceof ErrorResponse springError && springError.getStatusCode().is4xxClientError()) {
+            String message = Objects.requireNonNullElse(
+                    springError.getBody().getDetail(), "Request could not be processed");
+            return ResponseEntity
+                    .status(springError.getStatusCode())
+                    .body(Map.of("error", message));
+        }
+
+        log.error("Unhandled exception", ex);
         return ResponseEntity
-                .status(500)
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Something went wrong"));
     }
 }
