@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-class InMemoryIdempotencyRepository implements IIdempotencyRepository {
+class InMemoryIdempotencyRepositoryTest implements IIdempotencyRepository {
 
     final Map<String, IdempotencyRecord> records = new HashMap<>();
 

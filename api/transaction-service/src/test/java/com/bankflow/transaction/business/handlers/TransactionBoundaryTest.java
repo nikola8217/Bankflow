@@ -42,7 +42,7 @@ class TransactionBoundaryTest {
     private final RecordingTransactionRunner runner = new RecordingTransactionRunner();
     private final List<OutboxEntry> outbox = new ArrayList<>();
 
-    private final IIdempotencyRepository idempotency = new InMemoryIdempotencyRepository();
+    private final IIdempotencyRepository idempotency = new InMemoryIdempotencyRepositoryTest();
 
     private final IEventStore eventStore = new IEventStore() {
         public void save(TransactionAggregate aggregate) { aggregate.pullDomainEvents(); }
