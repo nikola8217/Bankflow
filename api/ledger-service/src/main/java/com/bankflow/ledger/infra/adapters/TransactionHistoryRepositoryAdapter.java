@@ -24,7 +24,7 @@ public class TransactionHistoryRepositoryAdapter implements ITransactionHistoryR
 
     @Override
     public List<TransactionHistory> findAllByAccountId(UUID accountId) {
-        return jpaRepository.findAllByAccountId(accountId)
+        return jpaRepository.findStatement(accountId)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
