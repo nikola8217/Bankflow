@@ -4,6 +4,8 @@
 
 A distributed banking backend demonstrating event sourcing, a choreography saga over Kafka and the transactional outbox, designed to stay correct under concurrency and partial failure. Its consistency guarantees are verified by automated tests running against real PostgreSQL and Kafka (Testcontainers).
 
+**Tech stack:** Java 21 · Spring Boot 4 · Apache Kafka · PostgreSQL · Docker Compose · Testcontainers · GitHub Actions
+
 ---
 
 ## Architecture
@@ -51,27 +53,39 @@ Each service has its own database; services never read each other's tables.
 
 ### Transaction flow
 
+1. The client sends a deposit, withdrawal or transfer to the Transaction service, optionally with an `Idempotency-Key`.
+2. The Transaction service checks with the Account service that the source account exists, is active and belongs to the user.
+3. In one database transaction it appends `TransactionInitiated` to the event store and writes `TransactionCreated` to the outbox.
+4. The client immediately receives **202 Accepted** with `Location: /api/transactions/{id}`.
+5. The outbox worker publishes the event to Kafka (`transaction-created`).
+6. The Ledger locks the balance row(s), books the money or declines, and in the same database transaction writes the statement entry and a `TransactionApproved` or `TransactionDeclined` event to its outbox.
+7. The Transaction service consumes the result and appends `TransactionCompleted` or `TransactionFailed`.
+8. The client polls `GET /api/transactions/{id}` and sees `COMPLETED` or `FAILED` with a reason.
+
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant T as Transaction
+    participant A as Account
     participant K as Kafka
     participant L as Ledger
 
     C->>T: POST /api/transactions/withdraw (Idempotency-Key)
+    T->>A: GET /internal/accounts/{id}
+    A-->>T: owner, status, currency
     T->>T: event store + outbox (one DB transaction)
     T-->>C: 202 Accepted, Location: /api/transactions/{id}
     T->>K: transaction-created (outbox worker)
     K->>L: consume
-    L->>L: lock balance row, debit or decline,<br/>history + outbox (one DB transaction)
+    L->>L: lock balance row, debit or decline,<br/>statement + outbox (one DB transaction)
     L->>K: transaction-approved / transaction-declined
     K->>T: consume
     T->>T: append Completed / Failed event
     C->>T: GET /api/transactions/{id}
-    T-->>C: status: COMPLETED | FAILED (+ reason)
+    T-->>C: COMPLETED | FAILED (+ reason)
 ```
 
-Money moves asynchronously, so write endpoints return **202 Accepted** with a `Location` header, and the client polls the status endpoint (the *asynchronous request-reply* pattern). Deposits follow the same path: they stay `PENDING` until the Ledger has booked them.
+Deposits follow the same path: they stay `PENDING` until the Ledger has booked them.
 
 ---
 
@@ -81,7 +95,9 @@ Money moves asynchronously, so write endpoints return **202 Accepted** with a `L
 
 **Ledger as the system of record for balances.** The Ledger is the single writer of balances. It enforces "no overdraft" under a pessimistic lock and is the service that approves or declines.
 
-**CQRS.** Commands go through a `CommandBus` to dedicated handlers; reads go through query services. Read models: the transaction status (from the event store) and the account statement (a projection in the Ledger).
+**CQRS.** Commands and queries take separate paths. Read models: the transaction status (from the event store) and the account statement (a projection in the Ledger).
+
+**CommandBus.** Every write in the Transaction service is a command object dispatched through a small, hand-written `CommandBus` to exactly one handler, discovered through Spring's dependency injection. Controllers stay thin, and adding a new operation means adding a command and a handler without touching existing code.
 
 **Choreography saga.** Transaction and Ledger coordinate only through events; there is no orchestrator. With two participants, an orchestrator would add coupling without adding value.
 
@@ -123,9 +139,9 @@ Money moves asynchronously, so write endpoints return **202 Accepted** with a `L
 | GET | `/api/accounts/user` | My accounts |
 | GET | `/api/accounts/{id}` | Account details |
 | PATCH | `/api/accounts/{id}/close` | Close an account |
-| POST | `/api/transactions/deposit` | Deposit |
-| POST | `/api/transactions/withdraw` | Withdraw |
-| POST | `/api/transactions/transfer` | Transfer |
+| POST | `/api/transactions/deposit` | Deposit → 202 |
+| POST | `/api/transactions/withdraw` | Withdraw → 202 |
+| POST | `/api/transactions/transfer` | Transfer → 202 |
 | GET | `/api/transactions/{id}` | Transaction status and failure reason |
 | GET | `/api/ledger/balance/{accountId}` | Current balance |
 | GET | `/api/ledger/history/{accountId}` | Account statement (incoming transfers included) |
@@ -176,7 +192,9 @@ docker compose up -d --build
 | Transaction | http://localhost:8083/swagger-ui.html |
 | Ledger | http://localhost:8084/swagger-ui.html |
 
-Kafdrop (Kafka UI): http://localhost:9000. In Swagger, click **Authorize** and paste the token from `POST /api/auth/login`.
+Kafdrop (Kafka UI): http://localhost:9000. 
+
+In Swagger, click **Authorize** and paste the token from `POST /api/auth/login`.
 
 ---
 
