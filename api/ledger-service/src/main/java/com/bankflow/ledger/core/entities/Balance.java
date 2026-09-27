@@ -22,6 +22,19 @@ public class Balance {
         this.updatedAt = LocalDateTime.now();
     }
 
+    private Balance(UUID userId, UUID accountId, BigDecimal amount, String currency, LocalDateTime updatedAt) {
+        this.userId = userId;
+        this.accountId = accountId;
+        this.amount = amount;
+        this.currency = currency;
+        this.updatedAt = updatedAt;
+    }
+
+    public static Balance restore(UUID userId, UUID accountId, BigDecimal amount,
+                                  String currency, LocalDateTime updatedAt) {
+        return new Balance(userId, accountId, amount, currency, updatedAt);
+    }
+
     public boolean canDebit(BigDecimal amount) {
         return this.amount.compareTo(amount) >= 0;
     }

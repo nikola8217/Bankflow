@@ -19,13 +19,23 @@ public class Account {
     private LocalDateTime updatedAt;
 
     public Account(UUID id, UUID userId, AccountType type, AccountStatus status, Currency currency) {
+        this(id, userId, type, status, currency, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    private Account(UUID id, UUID userId, AccountType type, AccountStatus status, Currency currency,
+                    LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.userId = userId;
         this.type = type;
         this.status = status;
         this.currency = currency;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static Account restore(UUID id, UUID userId, AccountType type, AccountStatus status, Currency currency,
+                                  LocalDateTime createdAt, LocalDateTime updatedAt) {
+        return new Account(id, userId, type, status, currency, createdAt, updatedAt);
     }
 
     public void close() {
