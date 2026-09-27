@@ -9,6 +9,7 @@ public class UserMapper {
 
     public UserModel toModel(User user) {
         UserModel model = new UserModel();
+        model.setId(user.getId());
         model.setEmail(user.getEmail());
         model.setPassword(user.getPassword());
         model.setFirstName(user.getFirstName());

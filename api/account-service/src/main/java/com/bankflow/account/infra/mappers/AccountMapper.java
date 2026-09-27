@@ -7,8 +7,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccountMapper {
 
-    public AccountModel toNewModel(Account account) {
+    public AccountModel toModel(Account account) {
         AccountModel model = new AccountModel();
+        model.setId(account.getId());
         model.setUserId(account.getUserId());
         model.setType(account.getType());
         model.setCurrency(account.getCurrency());
@@ -18,19 +19,15 @@ public class AccountMapper {
         return model;
     }
 
-    public AccountModel toExistingModel(Account account) {
-        AccountModel model = toNewModel(account);
-        model.setId(account.getId());
-        return model;
-    }
-
     public Account toDomain(AccountModel model) {
-        return new Account(
+        return Account.restore(
                 model.getId(),
                 model.getUserId(),
                 model.getType(),
                 model.getStatus(),
-                model.getCurrency()
+                model.getCurrency(),
+                model.getCreatedAt(),
+                model.getUpdatedAt()
         );
     }
 }

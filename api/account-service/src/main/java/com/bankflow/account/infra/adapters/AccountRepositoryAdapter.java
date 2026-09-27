@@ -23,7 +23,7 @@ public class AccountRepositoryAdapter implements IAccountRepository {
 
     @Override
     public Account create(Account account) {
-        return mapper.toDomain(jpaRepository.save(mapper.toNewModel(account)));
+        return mapper.toDomain(jpaRepository.save(mapper.toModel(account)));
     }
 
     @Override
@@ -41,6 +41,6 @@ public class AccountRepositoryAdapter implements IAccountRepository {
 
     @Override
     public Account update(Account account) {
-        return mapper.toDomain(jpaRepository.save(mapper.toExistingModel(account)));
+        return mapper.toDomain(jpaRepository.save(mapper.toModel(account)));
     }
 }

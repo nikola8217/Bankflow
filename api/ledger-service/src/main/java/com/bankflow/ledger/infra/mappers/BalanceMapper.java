@@ -18,11 +18,12 @@ public class BalanceMapper {
     }
 
     public Balance toDomain(BalanceModel model) {
-        return new Balance(
+        return Balance.restore(
                 model.getUserId(),
                 model.getAccountId(),
                 model.getAmount(),
-                model.getCurrency()
+                model.getCurrency(),
+                model.getUpdatedAt()
         );
     }
 }
