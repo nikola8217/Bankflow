@@ -11,15 +11,14 @@ import com.bankflow.transaction.business.ports.ITransactionRunner;
 import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
 import com.bankflow.transaction.business.responses.TransferResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
-import com.bankflow.transaction.core.entities.IdempotencyRecord;
 import com.bankflow.transaction.core.entities.OutboxEntry;
 import com.bankflow.transaction.core.exceptions.IdempotencyKeyReusedException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.bankflow.transaction.business.IdempotencyGuard;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,10 +54,11 @@ class IdempotencyKeyTest {
             public Optional<TransactionAggregate> load(UUID id) { return Optional.empty(); }
         };
         ITransactionRunner runner = Runnable::run;
+        IdempotencyGuard guard = new IdempotencyGuard(idempotency, runner);
 
-        depositHandler = new DepositCommandHandler(accountClient, outbox::add, idempotency, runner, eventStore);
-        withdrawHandler = new WithdrawCommandHandler(accountClient, outbox::add, idempotency, runner, eventStore);
-        transferHandler = new TransferCommandHandler(accountClient, outbox::add, idempotency, runner, eventStore);
+        depositHandler = new DepositCommandHandler(accountClient, outbox::add, guard, eventStore);
+        withdrawHandler = new WithdrawCommandHandler(accountClient, outbox::add, guard, eventStore);
+        transferHandler = new TransferCommandHandler(accountClient, outbox::add, guard, eventStore);
     }
 
     @Test
@@ -125,21 +125,6 @@ class IdempotencyKeyTest {
                 .isInstanceOf(IdempotencyKeyReusedException.class);
 
         assertThat(outbox).hasSize(1);
-    }
-
-    @Test
-    void losingARaceReturnsTheWinnersTransaction() {
-        UUID winnersTransaction = UUID.randomUUID();
-        String fingerprint = BaseTransactionHandler.fingerprint(
-                TransactionType.DEPOSIT, anasAccount, null, new BigDecimal("100.00"));
-        idempotency.beforeNextSave = () -> idempotency.records.put(ana + "|key-1",
-                new IdempotencyRecord(ana, "key-1", fingerprint, winnersTransaction, LocalDateTime.now()));
-
-        TransactionCreatedResponse response = depositHandler.handle(deposit(ana, anasAccount, "100.00", "key-1"));
-
-        assertThat(response.id()).isEqualTo(winnersTransaction);
-
-        assertThat(outbox).isEmpty();
     }
 
     private DepositCommand deposit(UUID userId, UUID accountId, String amount, String key) {

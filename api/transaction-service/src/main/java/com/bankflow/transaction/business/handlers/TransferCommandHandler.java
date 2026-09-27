@@ -3,15 +3,14 @@ package com.bankflow.transaction.business.handlers;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.commands.TransferCommand;
 import com.bankflow.transaction.business.dtos.TransferDto;
+import com.bankflow.transaction.business.IdempotencyGuard;
+import com.bankflow.transaction.business.IdempotentRequest;
 import com.bankflow.transaction.business.ports.IAccountClient;
 import com.bankflow.transaction.business.ports.IEventStore;
-import com.bankflow.transaction.business.ports.IIdempotencyRepository;
 import com.bankflow.transaction.business.ports.IOutboxRepository;
-import com.bankflow.transaction.business.ports.ITransactionRunner;
 import com.bankflow.transaction.business.responses.TransferResponse;
 import com.bankflow.transaction.core.aggregates.TransactionAggregate;
 import com.bankflow.transaction.core.commands.CommandHandler;
-import com.bankflow.transaction.core.exceptions.IdempotencyKeyConflictException;
 import com.bankflow.transaction.core.exceptions.TransactionException;
 import com.bankflow.transaction.core.valueObjects.AccountSnapshot;
 import org.springframework.http.HttpStatus;
@@ -24,14 +23,15 @@ import java.util.UUID;
 public class TransferCommandHandler extends BaseTransactionHandler
         implements CommandHandler<TransferCommand, TransferResponse> {
 
+    private final IdempotencyGuard idempotency;
     private final IEventStore eventStore;
 
     public TransferCommandHandler(IAccountClient accountClient,
                                   IOutboxRepository outboxRepository,
-                                  IIdempotencyRepository idempotencyRepository,
-                                  ITransactionRunner transactionRunner,
+                                  IdempotencyGuard idempotency,
                                   IEventStore eventStore) {
-        super(accountClient, outboxRepository, idempotencyRepository, transactionRunner);
+        super(accountClient, outboxRepository);
+        this.idempotency = idempotency;
         this.eventStore = eventStore;
     }
 
@@ -43,10 +43,10 @@ public class TransferCommandHandler extends BaseTransactionHandler
     @Override
     public TransferResponse handle(TransferCommand command) {
         TransferDto dto = command.dto();
-        String fingerprint = fingerprint(TransactionType.TRANSFER,
-                dto.fromAccountId(), dto.toAccountId(), dto.amount());
+        IdempotentRequest request = IdempotentRequest.of(dto.userId(), dto.idempotencyKey(),
+                TransactionType.TRANSFER, dto.fromAccountId(), dto.toAccountId(), dto.amount());
 
-        Optional<UUID> previous = findPreviousTransaction(dto.userId(), dto.idempotencyKey(), fingerprint);
+        Optional<UUID> previous = idempotency.previousResult(request);
         if (previous.isPresent()) {
             return response(previous.get(), dto);
         }
@@ -61,23 +61,15 @@ public class TransferCommandHandler extends BaseTransactionHandler
             );
         }
 
-        UUID transactionId = UUID.randomUUID();
-        try {
-            transactionRunner.inTransaction(() -> {
-                saveIdempotencyKey(dto.userId(), dto.idempotencyKey(), fingerprint, transactionId);
+        UUID transactionId = idempotency.executeOnce(request, id -> {
+            TransactionAggregate aggregate = new TransactionAggregate();
+            aggregate.initiate(id, fromAccount.id(), dto.userId(),
+                    TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
+            eventStore.save(aggregate);
 
-                TransactionAggregate aggregate = new TransactionAggregate();
-                aggregate.initiate(transactionId, fromAccount.id(), dto.userId(),
-                        TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
-                eventStore.save(aggregate);
-
-                saveToOutbox(transactionId, fromAccount.id(), dto.userId(),
-                        TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
-            });
-        } catch (IdempotencyKeyConflictException conflict) {
-            return response(transactionOfConcurrentDuplicate(
-                    dto.userId(), dto.idempotencyKey(), fingerprint, conflict), dto);
-        }
+            saveToOutbox(id, fromAccount.id(), dto.userId(),
+                    TransactionType.TRANSFER, dto.amount(), fromAccount.currency(), dto.toAccountId());
+        });
 
         return response(transactionId, dto);
     }

@@ -1,5 +1,6 @@
 package com.bankflow.transaction.business.handlers;
 
+import com.bankflow.transaction.business.IdempotencyGuard;
 import com.bankflow.transaction.business.commands.DepositCommand;
 import com.bankflow.transaction.business.commands.TransferCommand;
 import com.bankflow.transaction.business.commands.WithdrawCommand;
@@ -73,10 +74,11 @@ class TransactionAuthorizationTest  {
         InMemoryIdempotencyRepository idempotency = new InMemoryIdempotencyRepository();
 
         ITransactionRunner runner = Runnable::run;
+        IdempotencyGuard guard = new IdempotencyGuard(idempotency, runner);
 
-        depositHandler = new DepositCommandHandler(accountClient, outboxRepository, idempotency, runner, eventStore);
-        withdrawHandler = new WithdrawCommandHandler(accountClient, outboxRepository, idempotency, runner, eventStore);
-        transferHandler = new TransferCommandHandler(accountClient, outboxRepository, idempotency, runner, eventStore);
+        depositHandler = new DepositCommandHandler(accountClient, outboxRepository, guard, eventStore);
+        withdrawHandler = new WithdrawCommandHandler(accountClient, outboxRepository, guard, eventStore);
+        transferHandler = new TransferCommandHandler(accountClient, outboxRepository, guard, eventStore);
     }
 
     @Test

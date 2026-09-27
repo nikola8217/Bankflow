@@ -1,6 +1,7 @@
 package com.bankflow.transaction.business.handlers;
 
 import com.bankflow.shared.exceptions.ServiceUnavailableException;
+import com.bankflow.transaction.business.IdempotencyGuard;
 import com.bankflow.transaction.business.commands.WithdrawCommand;
 import com.bankflow.transaction.business.dtos.AccountTransactionDto;
 import com.bankflow.transaction.business.ports.IAccountClient;
@@ -49,7 +50,8 @@ class TransactionBoundaryTest {
     };
 
     private WithdrawCommandHandler handlerWith(IAccountClient accountClient) {
-        return new WithdrawCommandHandler(accountClient, outbox::add, idempotency, runner, eventStore);
+        return new WithdrawCommandHandler(accountClient, outbox::add,
+                new IdempotencyGuard(idempotency, runner), eventStore);
     }
 
     private WithdrawCommand withdrawal() {

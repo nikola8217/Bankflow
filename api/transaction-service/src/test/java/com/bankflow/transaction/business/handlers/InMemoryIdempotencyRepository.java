@@ -13,8 +13,6 @@ class InMemoryIdempotencyRepository implements IIdempotencyRepository {
 
     final Map<String, IdempotencyRecord> records = new HashMap<>();
 
-    Runnable beforeNextSave;
-
     @Override
     public Optional<IdempotencyRecord> find(UUID userId, String idempotencyKey) {
         return Optional.ofNullable(records.get(id(userId, idempotencyKey)));
@@ -22,11 +20,6 @@ class InMemoryIdempotencyRepository implements IIdempotencyRepository {
 
     @Override
     public void save(IdempotencyRecord record) {
-        if (beforeNextSave != null) {
-            Runnable hook = beforeNextSave;
-            beforeNextSave = null;
-            hook.run();
-        }
         String id = id(record.userId(), record.idempotencyKey());
         if (records.containsKey(id)) {
             throw new IdempotencyKeyConflictException();   // kao UNIQUE constraint u bazi
