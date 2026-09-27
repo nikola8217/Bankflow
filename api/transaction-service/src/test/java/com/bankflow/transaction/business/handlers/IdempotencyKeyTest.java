@@ -1,6 +1,5 @@
 package com.bankflow.transaction.business.handlers;
 
-import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.transaction.business.commands.DepositCommand;
 import com.bankflow.transaction.business.commands.TransferCommand;
 import com.bankflow.transaction.business.commands.WithdrawCommand;
@@ -36,7 +35,7 @@ class IdempotencyKeyTest {
     private final UUID jelenasAccount = UUID.randomUUID();
 
     private final List<OutboxEntry> outbox = new ArrayList<>();
-    private final InMemoryIdempotencyRepository idempotency = new InMemoryIdempotencyRepository();
+    private final InMemoryIdempotencyRepositoryTest idempotency = new InMemoryIdempotencyRepositoryTest();
 
     private DepositCommandHandler depositHandler;
     private WithdrawCommandHandler withdrawHandler;

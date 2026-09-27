@@ -55,7 +55,7 @@ public class DepositCommandHandler extends BaseTransactionHandler
             TransactionAggregate aggregate = new TransactionAggregate();
             aggregate.initiate(id, account.id(), dto.userID(),
                     TransactionType.DEPOSIT, dto.amount(), account.currency(), null);
-            aggregate.complete();
+
             eventStore.save(aggregate);
 
             saveToOutbox(id, account.id(), dto.userID(),

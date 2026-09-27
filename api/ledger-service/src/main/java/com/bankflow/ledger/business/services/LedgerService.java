@@ -51,7 +51,7 @@ public class LedgerService {
         Balance balance = lock(event.accountId(), event.currency());
         balance.credit(event.amount());
         balanceRepository.save(balance);
-        historyProjection.project(event, TransactionStatus.COMPLETED, null);
+        approve(event);
         log.info("Deposit processed for account: {}", event.accountId());
     }
 

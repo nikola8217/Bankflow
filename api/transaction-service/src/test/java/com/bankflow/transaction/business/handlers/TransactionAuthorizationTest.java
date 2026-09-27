@@ -71,7 +71,7 @@ class TransactionAuthorizationTest  {
                 new AccountSnapshot(jelenasAccount, jelena, "CHECKING", "RSD", "ACTIVE"));
 
         InMemoryEventStore eventStore = new InMemoryEventStore();
-        InMemoryIdempotencyRepository idempotency = new InMemoryIdempotencyRepository();
+        InMemoryIdempotencyRepositoryTest idempotency = new InMemoryIdempotencyRepositoryTest();
 
         ITransactionRunner runner = Runnable::run;
         IdempotencyGuard guard = new IdempotencyGuard(idempotency, runner);
