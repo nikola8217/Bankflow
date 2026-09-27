@@ -26,6 +26,7 @@ public class TransactionAggregate {
     private String currency;
     private UUID targetAccountId;
     private TransactionStatus status;
+    private String failureReason;
     private int version;
 
     private final List<Object> domainEvents = new ArrayList<>();
@@ -95,6 +96,7 @@ public class TransactionAggregate {
 
     public void apply(TransactionFailedEvent event) {
         this.status = TransactionStatus.FAILED;
+        this.failureReason = event.getReason();
         this.version++;
     }
 
