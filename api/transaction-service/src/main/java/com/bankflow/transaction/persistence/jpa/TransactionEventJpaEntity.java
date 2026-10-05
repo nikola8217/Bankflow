@@ -12,7 +12,10 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "transaction_events",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"aggregateId", "version"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_transaction_events_aggregate_version",
+                columnNames = {"aggregateId", "version"}
+        )
 )
 @Data
 @NoArgsConstructor
