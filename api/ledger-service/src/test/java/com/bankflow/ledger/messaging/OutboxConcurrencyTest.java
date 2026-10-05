@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import com.bankflow.outbox.OutboxRelay;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,7 +32,7 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
     LedgerEventPublisher eventPublisher;
 
     @Autowired
-    OutboxWorker outboxWorker;
+    OutboxRelay outboxRelay;
 
     @Test
     void parallelWorkersPublishEachEntryExactlyOnce() throws Exception {
@@ -57,7 +58,7 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
             results.add(pool.submit(() -> {
                 startGate.await();
                 for (int round = 0; round < 5; round++) {
-                    outboxWorker.process();
+                    outboxRelay.process();
                 }
                 return null;
             }));
