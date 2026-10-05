@@ -2,6 +2,7 @@ package com.bankflow.transaction.messaging;
 
 import com.bankflow.shared.events.TransactionApprovedEvent;
 import com.bankflow.shared.events.TransactionDeclinedEvent;
+import com.bankflow.shared.events.Topics;
 import com.bankflow.transaction.application.bus.CommandBus;
 import com.bankflow.transaction.application.commands.CompleteTransactionCommand;
 import com.bankflow.transaction.application.commands.FailTransactionCommand;
@@ -17,13 +18,13 @@ public class TransactionStatusConsumer {
 
     private final CommandBus commandBus;
 
-    @KafkaListener(topics = "transaction-approved", groupId = "transaction-service")
+    @KafkaListener(topics = Topics.TRANSACTION_APPROVED, groupId = "transaction-service")
     public void handleApproved(TransactionApprovedEvent event) {
         log.info("Received TransactionApprovedEvent for: {}", event.transactionId());
         commandBus.send(new CompleteTransactionCommand(event.transactionId()));
     }
 
-    @KafkaListener(topics = "transaction-declined", groupId = "transaction-service")
+    @KafkaListener(topics = Topics.TRANSACTION_DECLINED, groupId = "transaction-service")
     public void handleDeclined(TransactionDeclinedEvent event) {
         log.info("Received TransactionDeclinedEvent for: {}", event.transactionId());
         commandBus.send(new FailTransactionCommand(event.transactionId(), event.reason()));
