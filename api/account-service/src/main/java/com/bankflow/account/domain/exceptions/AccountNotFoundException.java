@@ -1,12 +1,12 @@
 package com.bankflow.account.domain.exceptions;
 
 import com.bankflow.shared.exceptions.AppException;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 import java.util.UUID;
 
 public class AccountNotFoundException extends AppException {
     public AccountNotFoundException(UUID id) {
-        super("Account not found with id: " + id, HttpStatus.NOT_FOUND);
+        super("Account not found with id: " + id, ErrorType.NOT_FOUND);
     }
 }

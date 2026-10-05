@@ -13,7 +13,7 @@ import com.bankflow.transaction.domain.models.TransactionAggregate;
 import com.bankflow.transaction.application.bus.CommandHandler;
 import com.bankflow.transaction.domain.exceptions.TransactionException;
 import com.bankflow.transaction.domain.models.AccountSnapshot;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -57,7 +57,7 @@ public class TransferCommandHandler extends BaseTransactionHandler
         if (!fromAccount.currency().equals(toAccount.currency())) {
             throw new TransactionException(
                     "Currency mismatch: " + fromAccount.currency() + " vs " + toAccount.currency(),
-                    HttpStatus.BAD_REQUEST
+                    ErrorType.BUSINESS_RULE
             );
         }
 

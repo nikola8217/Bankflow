@@ -6,6 +6,7 @@ import com.bankflow.account.web.requests.CreateAccountRequest;
 import com.bankflow.shared.security.SecurityUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,7 +22,7 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@RequestBody CreateAccountRequest request) {
+    public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody CreateAccountRequest request) {
         AccountResponse account = accountService.createAccount(request.format(SecurityUtils.getCurrentUserId()));
 
         return ResponseEntity.status(201).body(account);

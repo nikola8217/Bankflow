@@ -1,17 +1,15 @@
 package com.bankflow.shared.exceptions;
 
-import org.springframework.http.HttpStatus;
-
 public abstract class AppException extends RuntimeException {
 
-    private final HttpStatus status;
+    private final ErrorType type;
 
-    public AppException(String message, HttpStatus status) {
+    protected AppException(String message, ErrorType type) {
         super(message);
-        this.status = status;
+        this.type = type;
     }
 
-    public HttpStatus getStatus() {
-        return status;
+    public ErrorType getType() {
+        return type;
     }
 }

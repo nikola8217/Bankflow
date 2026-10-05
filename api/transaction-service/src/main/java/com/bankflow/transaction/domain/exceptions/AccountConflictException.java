@@ -1,10 +1,10 @@
 package com.bankflow.transaction.domain.exceptions;
 
 import com.bankflow.shared.exceptions.AppException;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 public class AccountConflictException extends AppException {
     public AccountConflictException() {
-        super("Account conflict", HttpStatus.BAD_REQUEST);
+        super("Account conflict", ErrorType.BUSINESS_RULE);
     }
 }

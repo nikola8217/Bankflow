@@ -1,20 +1,26 @@
 package com.bankflow.shared.handlers;
 
 import com.bankflow.shared.exceptions.AppException;
+import com.bankflow.shared.exceptions.ErrorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class ErrorHandler {
@@ -24,8 +30,44 @@ public class ErrorHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<Map<String, String>> handleAppException(AppException ex) {
         return ResponseEntity
-                .status(ex.getStatus())
+                .status(toHttpStatus(ex.getType()))
                 .body(Map.of("error", ex.getMessage()));
+    }
+
+    // The only place that knows how a failure type looks over HTTP.
+    static HttpStatus toHttpStatus(ErrorType type) {
+        return switch (type) {
+            case INVALID_REQUEST, BUSINESS_RULE -> HttpStatus.BAD_REQUEST;
+            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case CONFLICT -> HttpStatus.CONFLICT;
+            case UNPROCESSABLE -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+        };
+    }
+
+    // @Valid @RequestBody failed (Bean Validation on the request object).
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidBody(MethodArgumentNotValidException ex) {
+        return validationError(ex.getAllErrors());
+    }
+
+    // Constraints on other parameters (e.g. a header) failed; body errors land here too when both are present.
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidParameters(HandlerMethodValidationException ex) {
+        return validationError(ex.getAllErrors());
+    }
+
+    private static ResponseEntity<Map<String, String>> validationError(List<? extends MessageSourceResolvable> errors) {
+        String message = errors.stream()
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .collect(Collectors.joining("; "));
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", message.isEmpty() ? "Invalid request" : message));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

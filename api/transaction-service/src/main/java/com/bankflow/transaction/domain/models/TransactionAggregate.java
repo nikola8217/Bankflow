@@ -7,7 +7,7 @@ import com.bankflow.transaction.domain.events.TransactionFailedEvent;
 import com.bankflow.transaction.domain.events.TransactionInitiatedEvent;
 import com.bankflow.transaction.domain.exceptions.TransactionException;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,7 +38,7 @@ public class TransactionAggregate {
                          String currency, UUID targetAccountId) {
 
         if (this.status != null) {
-            throw new TransactionException("Transaction is already initiated", HttpStatus.CONFLICT);
+            throw new TransactionException("Transaction is already initiated", ErrorType.CONFLICT);
         }
 
         TransactionInitiatedEvent event = new TransactionInitiatedEvent(
@@ -52,7 +52,7 @@ public class TransactionAggregate {
 
     public void complete() {
         if (this.status != TransactionStatus.PENDING) {
-            throw new TransactionException("Transaction " + transactionId + " is not in PENDING status", HttpStatus.BAD_REQUEST);
+            throw new TransactionException("Transaction " + transactionId + " is not in PENDING status", ErrorType.CONFLICT);
         }
 
         TransactionCompletedEvent event = new TransactionCompletedEvent(
@@ -65,7 +65,7 @@ public class TransactionAggregate {
 
     public void fail(String reason) {
         if (this.status != TransactionStatus.PENDING) {
-            throw new TransactionException("Transaction " + transactionId + " is not in PENDING status", HttpStatus.CONFLICT);
+            throw new TransactionException("Transaction " + transactionId + " is not in PENDING status", ErrorType.CONFLICT);
         }
 
         TransactionFailedEvent event = new TransactionFailedEvent(
