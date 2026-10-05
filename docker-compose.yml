@@ -6,6 +6,12 @@ services:
         SERVICE: auth-service
     ports:
       - "${AUTH_SERVICE_PORT}:8081"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health/readiness || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     environment:
       SPRING_DATASOURCE_URL: ${AUTH_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
@@ -41,6 +47,12 @@ services:
         SERVICE: account-service
     ports:
       - "${ACCOUNT_SERVICE_PORT}:8082"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health/readiness || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     environment:
       SPRING_DATASOURCE_URL: ${ACCOUNT_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
@@ -79,6 +91,12 @@ services:
         SERVICE: transaction-service
     ports:
       - "${TRANSACTION_SERVICE_PORT}:8083"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health/readiness || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     environment:
       SPRING_DATASOURCE_URL: ${TRANSACTION_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
@@ -94,7 +112,7 @@ services:
       kafka:
         condition: service_healthy
       account-service:
-        condition: service_started
+        condition: service_healthy
 
   transaction-db:
     image: postgres:16
@@ -120,6 +138,12 @@ services:
         SERVICE: ledger-service
     ports:
       - "${LEDGER_SERVICE_PORT}:8084"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:8084/actuator/health/readiness || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     environment:
       SPRING_DATASOURCE_URL: ${LEDGER_DB_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USERNAME}
