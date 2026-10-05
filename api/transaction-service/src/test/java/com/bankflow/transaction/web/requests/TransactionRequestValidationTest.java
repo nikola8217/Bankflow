@@ -1,13 +1,12 @@
 package com.bankflow.transaction.web.requests;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -17,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TransactionRequestValidationTest {
 
     private static final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-    private static final ObjectMapper json = new ObjectMapper();
+    private static final JsonMapper json = JsonMapper.builder().build();
 
     private static Set<String> violations(Object request) {
         Set<ConstraintViolation<Object>> result = validator.validate(request);
