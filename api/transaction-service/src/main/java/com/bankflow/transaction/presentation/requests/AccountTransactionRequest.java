@@ -1,7 +1,7 @@
 package com.bankflow.transaction.presentation.requests;
 
-import com.bankflow.transaction.business.dtos.AccountTransactionDto;
-import com.bankflow.transaction.presentation.httpValidations.TransactionRequestsValidation;
+import com.bankflow.transaction.application.dtos.AccountTransaction;
+import com.bankflow.transaction.presentation.requests.httpValidations.TransactionRequestsValidation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -14,10 +14,10 @@ public class AccountTransactionRequest {
     private UUID accountId;
     private BigDecimal amount;
 
-    public AccountTransactionDto format(String token, String idempotencyKey, UUID userId) {
+    public AccountTransaction format(String token, String idempotencyKey, UUID userId) {
         TransactionRequestsValidation.validateAmount(this);
         TransactionRequestsValidation.validateIdempotencyKey(idempotencyKey);
-        return new AccountTransactionDto(
+        return new AccountTransaction(
                 accountId,
                 amount,
                 token,
