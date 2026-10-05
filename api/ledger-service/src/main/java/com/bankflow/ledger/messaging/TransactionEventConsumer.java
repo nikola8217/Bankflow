@@ -3,6 +3,7 @@ package com.bankflow.ledger.messaging;
 import com.bankflow.ledger.application.services.LedgerService;
 import com.bankflow.shared.events.AccountCreatedEvent;
 import com.bankflow.shared.events.TransactionCreatedEvent;
+import com.bankflow.shared.events.Topics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -15,13 +16,13 @@ public class TransactionEventConsumer {
 
     private final LedgerService ledgerService;
 
-    @KafkaListener(topics = "transaction-created", groupId = "ledger-service")
+    @KafkaListener(topics = Topics.TRANSACTION_CREATED, groupId = "ledger-service")
     public void consume(TransactionCreatedEvent event) {
         log.info("Received TransactionCreatedEvent for transaction: {}", event.transactionId());
         ledgerService.process(event);
     }
 
-    @KafkaListener(topics = "account-created", groupId = "ledger-service")
+    @KafkaListener(topics = Topics.ACCOUNT_CREATED, groupId = "ledger-service")
     public void consumeAccountCreated(AccountCreatedEvent event) {
         log.info("Received AccountCreatedEvent for account: {}", event.accountId());
         ledgerService.registerAccount(event);

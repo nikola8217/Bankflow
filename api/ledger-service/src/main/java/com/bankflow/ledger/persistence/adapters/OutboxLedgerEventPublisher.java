@@ -5,6 +5,7 @@ import com.bankflow.outbox.OutboxMessage;
 import com.bankflow.outbox.OutboxWriter;
 import com.bankflow.shared.events.TransactionApprovedEvent;
 import com.bankflow.shared.events.TransactionDeclinedEvent;
+import com.bankflow.shared.events.Topics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,16 +13,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OutboxLedgerEventPublisher implements LedgerEventPublisher {
 
-    private static final String TRANSACTION_APPROVED_TOPIC = "transaction-approved";
-    private static final String TRANSACTION_DECLINED_TOPIC = "transaction-declined";
-
     private final OutboxWriter outboxWriter;
 
     @Override
     public void transactionApproved(TransactionApprovedEvent event) {
         outboxWriter.append(new OutboxMessage(
                 event.transactionId(),
-                TRANSACTION_APPROVED_TOPIC,
+                Topics.TRANSACTION_APPROVED,
                 event.transactionId().toString(),
                 event));
     }
@@ -30,7 +28,7 @@ public class OutboxLedgerEventPublisher implements LedgerEventPublisher {
     public void transactionDeclined(TransactionDeclinedEvent event) {
         outboxWriter.append(new OutboxMessage(
                 event.transactionId(),
-                TRANSACTION_DECLINED_TOPIC,
+                Topics.TRANSACTION_DECLINED,
                 event.transactionId().toString(),
                 event));
     }

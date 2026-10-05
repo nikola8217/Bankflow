@@ -5,14 +5,13 @@ import com.bankflow.account.domain.models.Account;
 import com.bankflow.outbox.OutboxMessage;
 import com.bankflow.outbox.OutboxWriter;
 import com.bankflow.shared.events.AccountCreatedEvent;
+import com.bankflow.shared.events.Topics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class OutboxAccountEventPublisher implements AccountEventPublisher {
-
-    private static final String ACCOUNT_CREATED_TOPIC = "account-created";
 
     private final OutboxWriter outboxWriter;
 
@@ -26,7 +25,7 @@ public class OutboxAccountEventPublisher implements AccountEventPublisher {
 
         outboxWriter.append(new OutboxMessage(
                 account.getId(),
-                ACCOUNT_CREATED_TOPIC,
+                Topics.ACCOUNT_CREATED,
                 account.getId().toString(),
                 event));
     }
