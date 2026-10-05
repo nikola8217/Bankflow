@@ -1,6 +1,5 @@
 package com.bankflow.transaction.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -18,9 +17,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
+import tools.jackson.databind.json.JsonMapper;
 import org.springframework.util.backoff.FixedBackOff;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,13 +31,13 @@ public class KafkaConsumerConfig {
     private String bootstrapServers;
 
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory(ObjectMapper objectMapper) {
+    public ConsumerFactory<String, Object> consumerFactory(JsonMapper jsonMapper) {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, "transaction-service");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        JsonDeserializer<Object> json = new JsonDeserializer<>(objectMapper);
+        JacksonJsonDeserializer<Object> json = new JacksonJsonDeserializer<>(jsonMapper);
         json.addTrustedPackages("com.bankflow.shared.events");
 
         return new DefaultKafkaConsumerFactory<>(
