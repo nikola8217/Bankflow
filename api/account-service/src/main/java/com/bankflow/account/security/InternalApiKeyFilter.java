@@ -1,4 +1,4 @@
-package com.bankflow.account.application.security;
+package com.bankflow.account.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

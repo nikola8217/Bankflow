@@ -1,4 +1,4 @@
-package com.bankflow.transaction.presentation.controllers;
+package com.bankflow.transaction.web.controllers;
 
 import com.bankflow.shared.security.SecurityUtils;
 import com.bankflow.transaction.application.bus.CommandBus;
@@ -9,8 +9,8 @@ import com.bankflow.transaction.application.commands.WithdrawCommand;
 import com.bankflow.transaction.application.dtos.TransactionCreatedResponse;
 import com.bankflow.transaction.application.dtos.TransactionStatusResponse;
 import com.bankflow.transaction.application.dtos.TransferResponse;
-import com.bankflow.transaction.presentation.requests.AccountTransactionRequest;
-import com.bankflow.transaction.presentation.requests.TransferRequest;
+import com.bankflow.transaction.web.requests.AccountTransactionRequest;
+import com.bankflow.transaction.web.requests.TransferRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

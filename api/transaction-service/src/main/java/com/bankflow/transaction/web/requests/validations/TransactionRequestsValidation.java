@@ -1,8 +1,8 @@
-package com.bankflow.transaction.presentation.requests.httpValidations;
+package com.bankflow.transaction.web.requests.validations;
 
 import com.bankflow.shared.exceptions.ValidationException;
-import com.bankflow.transaction.presentation.requests.AccountTransactionRequest;
-import com.bankflow.transaction.presentation.requests.TransferRequest;
+import com.bankflow.transaction.web.requests.AccountTransactionRequest;
+import com.bankflow.transaction.web.requests.TransferRequest;
 
 import java.math.BigDecimal;
 

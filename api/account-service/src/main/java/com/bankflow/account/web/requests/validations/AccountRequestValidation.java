@@ -1,4 +1,4 @@
-package com.bankflow.account.web.requests.httpValidations;
+package com.bankflow.account.web.requests.validations;
 
 import com.bankflow.account.web.requests.CreateAccountRequest;
 import com.bankflow.shared.exceptions.ValidationException;

@@ -3,7 +3,7 @@ package com.bankflow.account.web.requests;
 import com.bankflow.account.application.dtos.CreateAccount;
 import com.bankflow.account.domain.enums.AccountType;
 import com.bankflow.account.domain.enums.Currency;
-import com.bankflow.account.web.requests.httpValidations.AccountRequestValidation;
+import com.bankflow.account.web.requests.validations.AccountRequestValidation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
