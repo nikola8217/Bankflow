@@ -1,9 +1,10 @@
 package com.bankflow.account.messaging;
 
 import com.bankflow.account.AbstractIntegrationTest;
-import com.bankflow.account.persistence.jpa.OutboxJpaEntity;
-import com.bankflow.account.persistence.jpa.repositories.OutboxJpaRepository;
-import com.bankflow.shared.enums.OutboxStatus;
+import com.bankflow.outbox.OutboxMessage;
+import com.bankflow.outbox.OutboxRelay;
+import com.bankflow.outbox.OutboxWriter;
+import com.bankflow.shared.events.AccountCreatedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +28,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OutboxConcurrencyTest extends AbstractIntegrationTest {
 
     @Autowired
-    OutboxJpaRepository outboxRepository;
+    OutboxWriter outboxWriter;
 
     @Autowired
-    OutboxWorker outboxWorker;
+    OutboxRelay outboxRelay;
 
     @Test
     void parallelWorkersPublishEachEntryExactlyOnce() throws Exception {
@@ -39,14 +39,11 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
         int entries = 50;
         for (int i = 0; i < entries; i++) {
             UUID accountId = UUID.randomUUID();
-            OutboxJpaEntity model = new OutboxJpaEntity();
-            model.setAggregateId(accountId);
-            model.setEventType("AccountCreatedEvent");
-            model.setPayload("{\"accountId\":\"" + accountId + "\",\"userId\":\"" + userId
-                    + "\",\"currency\":\"RSD\"}");
-            model.setStatus(OutboxStatus.PENDING);
-            model.setCreatedAt(LocalDateTime.now());
-            outboxRepository.save(model);
+            outboxWriter.append(new OutboxMessage(
+                    accountId,
+                    "account-created",
+                    accountId.toString(),
+                    new AccountCreatedEvent(accountId, userId, "RSD")));
         }
 
         runWorkersInParallel(4);
@@ -62,7 +59,7 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
             results.add(pool.submit(() -> {
                 startGate.await();
                 for (int round = 0; round < 5; round++) {
-                    outboxWorker.process();
+                    outboxRelay.process();
                 }
                 return null;
             }));
