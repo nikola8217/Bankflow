@@ -103,7 +103,7 @@ Deposits follow the same path: they stay `PENDING` until the Ledger has booked t
 
 **Transactional outbox (all three producers).** Domain changes and the outgoing event are committed in the same database transaction; a worker publishes to Kafka and marks the row only after the broker acknowledges it.
 
-**Hexagonal architecture.** Business logic depends on ports (`IEventStore`, `IAccountClient`, `ITransactionRunner`, …); Spring, JPA, Kafka and HTTP live in adapters. This keeps most business tests plain unit tests.
+**Hexagonal architecture.** Business logic depends on ports (`EventStore`, `AccountClient`, `TransactionRunner`, …); Spring, JPA, Kafka and HTTP live in adapters (persistence, messaging, client, web). This keeps most business tests plain unit tests.
 
 ---
 

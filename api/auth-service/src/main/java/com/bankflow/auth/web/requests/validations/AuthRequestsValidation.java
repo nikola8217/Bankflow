@@ -1,4 +1,4 @@
-package com.bankflow.auth.web.requests.httpValidations;
+package com.bankflow.auth.web.requests.validations;
 
 import com.bankflow.auth.domain.validations.UserValidation;
 import com.bankflow.auth.web.requests.LoginUserRequest;

@@ -1,10 +1,9 @@
-package com.bankflow.transaction.clients;
+package com.bankflow.transaction.client;
 
 import com.bankflow.shared.exceptions.ServiceUnavailableException;
 import com.bankflow.transaction.domain.exceptions.AccountNotFoundException;
 import com.bankflow.transaction.domain.models.AccountSnapshot;
 import com.bankflow.transaction.config.AccountClientConfig;
-import com.bankflow.transaction.client.AccountClientAdapter;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;

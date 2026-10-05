@@ -1,7 +1,7 @@
 package com.bankflow.auth.web.requests;
 
 import com.bankflow.auth.application.dtos.LoginUser;
-import com.bankflow.auth.web.requests.httpValidations.AuthRequestsValidation;
+import com.bankflow.auth.web.requests.validations.AuthRequestsValidation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

@@ -1,7 +1,7 @@
-package com.bankflow.transaction.presentation.requests;
+package com.bankflow.transaction.web.requests;
 
 import com.bankflow.transaction.application.dtos.Transfer;
-import com.bankflow.transaction.presentation.requests.httpValidations.TransactionRequestsValidation;
+import com.bankflow.transaction.web.requests.validations.TransactionRequestsValidation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

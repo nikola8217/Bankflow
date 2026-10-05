@@ -1,6 +1,5 @@
-package com.bankflow.account.application;
+package com.bankflow.account.application.services;
 
-import com.bankflow.account.application.services.AccountService;
 import com.bankflow.account.application.ports.AccountRepository;
 import com.bankflow.account.application.dtos.AccountResponse;
 import com.bankflow.account.domain.models.Account;
