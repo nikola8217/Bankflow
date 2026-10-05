@@ -1,11 +1,9 @@
 package com.bankflow.transaction.application.handlers;
 
-import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.application.ports.AccountClient;
-import com.bankflow.transaction.application.ports.OutboxRepository;
-import com.bankflow.transaction.application.outbox.OutboxEntry;
+import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 import com.bankflow.transaction.domain.exceptions.AccountNotActiveException;
 import com.bankflow.transaction.domain.exceptions.AccountNotFoundException;
 import com.bankflow.transaction.domain.models.AccountSnapshot;
@@ -19,7 +17,7 @@ import java.util.UUID;
 public abstract class BaseTransactionHandler {
 
     protected final AccountClient accountClient;
-    protected final OutboxRepository outboxRepository;
+    protected final TransactionEventPublisher eventPublisher;
 
     protected AccountSnapshot getActiveAccount(UUID accountId) {
         AccountSnapshot account = accountClient.getAccount(accountId);
@@ -42,21 +40,13 @@ public abstract class BaseTransactionHandler {
         }
     }
 
-    protected void saveToOutbox(UUID transactionId, UUID accountId, UUID userId,
-                                TransactionType type, BigDecimal amount,
-                                String currency, UUID targetAccountId) {
-        OutboxEntry entry = OutboxEntry.builder()
-                .aggregateId(transactionId)
-                .eventType("TransactionCreatedEvent")
-                .payload(new TransactionCreatedEvent(
-                        transactionId, accountId, userId,
-                        type, amount, currency, targetAccountId,
-                        LocalDateTime.now()
-                ))
-                .status(OutboxStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        outboxRepository.save(entry);
+    protected void publishTransactionCreated(UUID transactionId, UUID accountId, UUID userId,
+                                             TransactionType type, BigDecimal amount,
+                                             String currency, UUID targetAccountId) {
+        eventPublisher.transactionCreated(new TransactionCreatedEvent(
+                transactionId, accountId, userId,
+                type, amount, currency, targetAccountId,
+                LocalDateTime.now()
+        ));
     }
 }

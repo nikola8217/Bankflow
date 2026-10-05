@@ -7,7 +7,7 @@ import com.bankflow.transaction.application.idempotency.IdempotencyGuard;
 import com.bankflow.transaction.application.idempotency.IdempotentRequest;
 import com.bankflow.transaction.application.ports.AccountClient;
 import com.bankflow.transaction.application.ports.EventStore;
-import com.bankflow.transaction.application.ports.OutboxRepository;
+import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 import com.bankflow.transaction.application.dtos.TransactionCreatedResponse;
 import com.bankflow.transaction.domain.models.TransactionAggregate;
 import com.bankflow.transaction.application.bus.CommandHandler;
@@ -25,10 +25,10 @@ public class DepositCommandHandler extends BaseTransactionHandler
     private final EventStore eventStore;
 
     public DepositCommandHandler(AccountClient accountClient,
-                                 OutboxRepository outboxRepository,
+                                 TransactionEventPublisher eventPublisher,
                                  IdempotencyGuard idempotency,
                                  EventStore eventStore) {
-        super(accountClient, outboxRepository);
+        super(accountClient, eventPublisher);
         this.idempotency = idempotency;
         this.eventStore = eventStore;
     }
@@ -58,7 +58,7 @@ public class DepositCommandHandler extends BaseTransactionHandler
 
             eventStore.save(aggregate);
 
-            saveToOutbox(id, account.id(), dto.userID(),
+            publishTransactionCreated(id, account.id(), dto.userID(),
                     TransactionType.DEPOSIT, dto.amount(), account.currency(), null);
         });
 

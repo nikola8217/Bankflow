@@ -1,17 +1,15 @@
 package com.bankflow.transaction.messaging;
 
-import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.AbstractIntegrationTest;
-import com.bankflow.transaction.application.ports.OutboxRepository;
-import com.bankflow.transaction.application.outbox.OutboxEntry;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -26,22 +24,16 @@ import static org.assertj.core.api.Assertions.fail;
 class OutboxWorkerTest extends AbstractIntegrationTest {
 
     @Autowired
-    OutboxRepository outboxRepository;
+    TransactionEventPublisher eventPublisher;
 
     @Test
     void publishesTransactionCreatedKeyedByAccountId() {
         UUID transactionId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
 
-        outboxRepository.save(OutboxEntry.builder()
-                .aggregateId(transactionId)
-                .eventType("TransactionCreatedEvent")
-                .payload(new TransactionCreatedEvent(
-                        transactionId, accountId, UUID.randomUUID(), TransactionType.WITHDRAWAL,
-                        new BigDecimal("100.00"), "RSD", null, LocalDateTime.now()))
-                .status(OutboxStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build());
+        eventPublisher.transactionCreated(new TransactionCreatedEvent(
+                transactionId, accountId, UUID.randomUUID(), TransactionType.WITHDRAWAL,
+                new BigDecimal("100.00"), "RSD", null, LocalDateTime.now()));
 
         ConsumerRecord<String, String> record = awaitRecordFor(transactionId);
 
