@@ -1,9 +1,7 @@
 package com.bankflow.ledger.messaging;
 
 import com.bankflow.ledger.AbstractIntegrationTest;
-import com.bankflow.ledger.application.ports.OutboxRepository;
-import com.bankflow.ledger.application.outbox.OutboxEntry;
-import com.bankflow.shared.enums.OutboxStatus;
+import com.bankflow.ledger.application.ports.LedgerEventPublisher;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.TransactionApprovedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -12,7 +10,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -31,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OutboxConcurrencyTest extends AbstractIntegrationTest {
 
     @Autowired
-    OutboxRepository outboxRepository;
+    LedgerEventPublisher eventPublisher;
 
     @Autowired
     OutboxWorker outboxWorker;
@@ -42,15 +39,9 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
         int entries = 50;
         for (int i = 0; i < entries; i++) {
             UUID transactionId = UUID.randomUUID();
-            outboxRepository.save(OutboxEntry.builder()
-                    .aggregateId(transactionId)
-                    .eventType("TransactionApprovedEvent")
-                    .payload(new TransactionApprovedEvent(
-                            transactionId, accountId, UUID.randomUUID(), TransactionType.WITHDRAWAL,
-                            new BigDecimal("1.00"), "RSD", null, LocalDateTime.now()))
-                    .status(OutboxStatus.PENDING)
-                    .createdAt(LocalDateTime.now())
-                    .build());
+            eventPublisher.transactionApproved(new TransactionApprovedEvent(
+                    transactionId, accountId, UUID.randomUUID(), TransactionType.WITHDRAWAL,
+                    new BigDecimal("1.00"), "RSD", null, LocalDateTime.now()));
         }
 
         runWorkersInParallel(4);

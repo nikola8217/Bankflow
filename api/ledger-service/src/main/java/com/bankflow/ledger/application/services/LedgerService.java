@@ -1,12 +1,10 @@
 package com.bankflow.ledger.application.services;
 
 import com.bankflow.ledger.application.ports.BalanceRepository;
-import com.bankflow.ledger.application.ports.OutboxRepository;
+import com.bankflow.ledger.application.ports.LedgerEventPublisher;
 import com.bankflow.ledger.application.ports.ProcessedEventRepository;
 import com.bankflow.ledger.application.projections.TransactionHistoryProjection;
 import com.bankflow.ledger.domain.models.Balance;
-import com.bankflow.ledger.application.outbox.OutboxEntry;
-import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.shared.enums.TransactionStatus;
 import com.bankflow.shared.events.AccountCreatedEvent;
 import com.bankflow.shared.events.TransactionApprovedEvent;
@@ -16,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Slf4j
@@ -26,7 +22,7 @@ import java.util.UUID;
 public class LedgerService {
 
     private final BalanceRepository balanceRepository;
-    private final OutboxRepository outboxRepository;
+    private final LedgerEventPublisher eventPublisher;
     private final ProcessedEventRepository processedEventRepository;
     private final TransactionHistoryProjection historyProjection;
 
@@ -102,7 +98,7 @@ public class LedgerService {
     }
 
     private void approve(TransactionCreatedEvent event) {
-        saveToOutbox("TransactionApprovedEvent", event.transactionId(), new TransactionApprovedEvent(
+        eventPublisher.transactionApproved(new TransactionApprovedEvent(
                 event.transactionId(), event.accountId(), event.userId(),
                 event.type(), event.amount(), event.currency(),
                 event.targetAccountId(), event.createdAt()
@@ -112,23 +108,13 @@ public class LedgerService {
     }
 
     private void decline(TransactionCreatedEvent event, String reason) {
-        saveToOutbox("TransactionDeclinedEvent", event.transactionId(), new TransactionDeclinedEvent(
+        eventPublisher.transactionDeclined(new TransactionDeclinedEvent(
                 event.transactionId(), event.accountId(), event.userId(),
                 event.type(), event.amount(), event.currency(),
                 event.targetAccountId(), reason, event.createdAt()
         ));
         historyProjection.project(event, TransactionStatus.FAILED, reason);
         log.warn("Transaction declined: {} ({})", event.transactionId(), reason);
-    }
-
-    private void saveToOutbox(String eventType, UUID aggregateId, Object payload) {
-        outboxRepository.save(OutboxEntry.builder()
-                .aggregateId(aggregateId)
-                .eventType(eventType)
-                .payload(payload)
-                .status(OutboxStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build());
     }
 
     @Transactional
