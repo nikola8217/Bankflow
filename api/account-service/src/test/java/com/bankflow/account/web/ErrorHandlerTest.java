@@ -11,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.Map;
 import java.util.UUID;
@@ -33,9 +35,14 @@ class ErrorHandlerTest {
         @GetMapping("/boom")
         public String boom() { throw new IllegalStateException("secret internal detail"); }
 
+        @PostMapping("/validated")
+        public String validated(@Valid @RequestBody NamedRequest body) { return "ok"; }
+
         @GetMapping("/fail/{type}")
         public String fail(@PathVariable ErrorType type) { throw new TestAppException(type); }
     }
+
+    record NamedRequest(@NotBlank(message = "Name is required") String name) {}
 
     static class TestAppException extends AppException {
         TestAppException(ErrorType type) { super("failed: " + type, type); }
@@ -87,6 +94,13 @@ class ErrorHandlerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.error").value("Something went wrong"))
                 .andExpect(content().string(not(containsString("secret"))));
+    }
+
+    @Test
+    void beanValidationFailureIs400WithItsMessage() throws Exception {
+        mockMvc.perform(post("/validated").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Name is required"));
     }
 
     @ParameterizedTest

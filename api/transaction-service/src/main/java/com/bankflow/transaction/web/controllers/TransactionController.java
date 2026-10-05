@@ -11,6 +11,9 @@ import com.bankflow.transaction.application.dtos.TransactionStatusResponse;
 import com.bankflow.transaction.application.dtos.TransferResponse;
 import com.bankflow.transaction.web.requests.AccountTransactionRequest;
 import com.bankflow.transaction.web.requests.TransferRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,13 +26,17 @@ import java.util.UUID;
 @RequestMapping("/api/transactions")
 public class TransactionController {
 
+    private static final String IDEMPOTENCY_KEY_RULE = "Idempotency-Key must be 1-255 characters";
+
     private final CommandBus commandBus;
     private final TransactionQueryService queryService;
 
     @PostMapping("/deposit")
     public ResponseEntity<TransactionCreatedResponse> deposit(
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @RequestBody AccountTransactionRequest request) {
+            @RequestHeader(value = "Idempotency-Key", required = false)
+            @Size(max = 255, message = IDEMPOTENCY_KEY_RULE)
+            @Pattern(regexp = ".*\\S.*", message = IDEMPOTENCY_KEY_RULE) String idempotencyKey,
+            @Valid @RequestBody AccountTransactionRequest request) {
 
         TransactionCreatedResponse response = commandBus.send(new DepositCommand(
                 request.format(SecurityUtils.getToken(), idempotencyKey, SecurityUtils.getCurrentUserId())
@@ -39,8 +46,10 @@ public class TransactionController {
 
     @PostMapping("/withdraw")
     public ResponseEntity<TransactionCreatedResponse> withdraw(
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @RequestBody AccountTransactionRequest request) {
+            @RequestHeader(value = "Idempotency-Key", required = false)
+            @Size(max = 255, message = IDEMPOTENCY_KEY_RULE)
+            @Pattern(regexp = ".*\\S.*", message = IDEMPOTENCY_KEY_RULE) String idempotencyKey,
+            @Valid @RequestBody AccountTransactionRequest request) {
 
         TransactionCreatedResponse response = commandBus.send(new WithdrawCommand(
                 request.format(SecurityUtils.getToken(), idempotencyKey, SecurityUtils.getCurrentUserId())
@@ -50,8 +59,10 @@ public class TransactionController {
 
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> transfer(
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @RequestBody TransferRequest request) {
+            @RequestHeader(value = "Idempotency-Key", required = false)
+            @Size(max = 255, message = IDEMPOTENCY_KEY_RULE)
+            @Pattern(regexp = ".*\\S.*", message = IDEMPOTENCY_KEY_RULE) String idempotencyKey,
+            @Valid @RequestBody TransferRequest request) {
 
         TransferResponse response = commandBus.send(new TransferCommand(
                 request.format(SecurityUtils.getToken(), idempotencyKey, SecurityUtils.getCurrentUserId())

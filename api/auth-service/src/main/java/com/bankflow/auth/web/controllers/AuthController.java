@@ -5,6 +5,7 @@ import com.bankflow.auth.application.dtos.RegisterUserResponse;
 import com.bankflow.auth.application.services.AuthService;
 import com.bankflow.auth.web.requests.LoginUserRequest;
 import com.bankflow.auth.web.requests.RegisterUserRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,14 +20,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterUserResponse> register(@RequestBody RegisterUserRequest request) {
+    public ResponseEntity<RegisterUserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
         RegisterUserResponse user = authService.register(request.format());
 
         return ResponseEntity.status(201).body(user);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginUserResponse> login(@RequestBody LoginUserRequest request) {
+    public ResponseEntity<LoginUserResponse> login(@Valid @RequestBody LoginUserRequest request) {
         LoginUserResponse token = authService.login(request.format());
 
         return ResponseEntity.ok(token);
