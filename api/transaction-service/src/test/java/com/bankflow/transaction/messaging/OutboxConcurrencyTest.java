@@ -10,7 +10,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import com.bankflow.outbox.OutboxRelay;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -32,7 +32,7 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
     TransactionEventPublisher eventPublisher;
 
     @Autowired
-    OutboxWorker outboxWorker;
+    OutboxRelay outboxRelay;
 
     @Test
     void parallelWorkersPublishEachEntryExactlyOnce() throws Exception {
@@ -51,7 +51,7 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
             results.add(pool.submit(() -> {
                 startGate.await();
                 for (int round = 0; round < 5; round++) {
-                    outboxWorker.process();
+                    outboxRelay.process();
                 }
                 return null;
             }));

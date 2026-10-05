@@ -19,6 +19,7 @@
 
     <modules>
         <module>shared</module>
+        <module>outbox</module>
         <module>auth-service</module>
         <module>account-service</module>
         <module>transaction-service</module>
@@ -36,6 +37,11 @@
             <dependency>
                 <groupId>com.bankflow</groupId>
                 <artifactId>shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.bankflow</groupId>
+                <artifactId>outbox</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
