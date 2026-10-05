@@ -14,6 +14,7 @@ WORKDIR /workspace
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
 COPY shared/pom.xml shared/
+COPY outbox/pom.xml outbox/
 COPY auth-service/pom.xml auth-service/
 COPY account-service/pom.xml account-service/
 COPY transaction-service/pom.xml transaction-service/
@@ -21,9 +22,10 @@ COPY ledger-service/pom.xml ledger-service/
 
 # Only the sources this service needs.
 COPY shared/src shared/src
+COPY outbox/src outbox/src
 COPY ${SERVICE}/src ${SERVICE}/src
 
-# -pl/-am builds the service plus the modules it depends on (shared).
+# -pl/-am builds the service plus the modules it depends on (shared, outbox).
 # The cache mount keeps ~/.m2 between builds, so dependencies are not downloaded every time.
 RUN --mount=type=cache,target=/root/.m2 \
     chmod +x mvnw && \
