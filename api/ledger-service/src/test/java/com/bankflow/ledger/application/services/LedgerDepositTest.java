@@ -1,14 +1,13 @@
 package com.bankflow.ledger.application.services;
 
 import com.bankflow.ledger.AbstractIntegrationTest;
-import com.bankflow.ledger.persistence.jpa.OutboxJpaEntity;
-import com.bankflow.ledger.persistence.jpa.repositories.OutboxJpaRepository;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.AccountCreatedEvent;
+import com.bankflow.shared.events.TransactionApprovedEvent;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,7 +20,7 @@ class LedgerDepositTest extends AbstractIntegrationTest {
     LedgerService ledgerService;
 
     @Autowired
-    OutboxJpaRepository outboxRepository;
+    JdbcTemplate jdbcTemplate;
 
     @Test
     void bookedDepositIsConfirmedBackToTransactionService() {
@@ -34,9 +33,8 @@ class LedgerDepositTest extends AbstractIntegrationTest {
 
         ledgerService.process(deposit);
 
-        assertThat(outboxRepository.findAll())
-                .filteredOn(entry -> entry.getAggregateId().equals(deposit.transactionId()))
-                .extracting(OutboxJpaEntity::getEventType)
-                .containsExactly("TransactionApprovedEvent");
+        assertThat(jdbcTemplate.queryForList(
+                "SELECT event_type FROM outbox WHERE aggregate_id = ?", String.class, deposit.transactionId()))
+                .containsExactly(TransactionApprovedEvent.class.getName());
     }
 }
