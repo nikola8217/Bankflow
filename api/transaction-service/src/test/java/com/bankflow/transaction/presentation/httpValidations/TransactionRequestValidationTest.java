@@ -1,6 +1,7 @@
 package com.bankflow.transaction.presentation.httpValidations;
 
 import com.bankflow.shared.exceptions.ValidationException;
+import com.bankflow.transaction.presentation.requests.httpValidations.TransactionRequestsValidation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

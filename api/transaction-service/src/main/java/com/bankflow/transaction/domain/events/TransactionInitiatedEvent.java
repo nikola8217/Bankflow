@@ -1,0 +1,22 @@
+package com.bankflow.transaction.domain.events;
+
+import com.bankflow.shared.enums.TransactionType;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class TransactionInitiatedEvent {
+    private UUID transactionId;
+    private UUID accountId;
+    private UUID userId;
+    private TransactionType type;
+    private BigDecimal amount;
+    private String currency;
+    private UUID targetAccountId;
+}

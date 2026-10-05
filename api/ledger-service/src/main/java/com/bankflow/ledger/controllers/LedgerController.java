@@ -1,8 +1,8 @@
 package com.bankflow.ledger.controllers;
 
-import com.bankflow.ledger.business.services.LedgerQueryService;
-import com.bankflow.ledger.core.entities.Balance;
-import com.bankflow.ledger.core.entities.TransactionHistory;
+import com.bankflow.ledger.application.services.LedgerQueryService;
+import com.bankflow.ledger.domain.models.Balance;
+import com.bankflow.ledger.domain.models.TransactionHistory;
 import com.bankflow.shared.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

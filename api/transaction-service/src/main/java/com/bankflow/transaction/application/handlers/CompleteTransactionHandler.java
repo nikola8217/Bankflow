@@ -1,0 +1,44 @@
+package com.bankflow.transaction.application.handlers;
+
+import com.bankflow.shared.enums.TransactionStatus;
+import com.bankflow.transaction.application.commands.CompleteTransactionCommand;
+import com.bankflow.transaction.application.ports.EventStore;
+import com.bankflow.transaction.domain.models.TransactionAggregate;
+import com.bankflow.transaction.application.bus.CommandHandler;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class CompleteTransactionHandler implements CommandHandler<CompleteTransactionCommand, Void> {
+
+    private final EventStore eventStore;
+
+    @Override
+    public Class<CompleteTransactionCommand> getCommandType() {
+        return CompleteTransactionCommand.class;
+    }
+
+    @Override
+    @Transactional
+    public Void handle(CompleteTransactionCommand command) {
+        TransactionAggregate aggregate = eventStore.load(command.transactionId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Transaction not found: " + command.transactionId()
+                ));
+
+        if (aggregate.getStatus() == TransactionStatus.COMPLETED) {
+            log.info("Transaction {} already completed, ignoring duplicate event", command.transactionId());
+            return null;
+        }
+
+        aggregate.complete();
+        eventStore.save(aggregate);
+
+        log.info("Transaction completed: {}", command.transactionId());
+        return null;
+    }
+}

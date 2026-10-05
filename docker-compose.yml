@@ -2,7 +2,8 @@ services:
   auth-service:
     build:
       context: ./api
-      dockerfile: auth-service/Dockerfile
+      args:
+        SERVICE: auth-service
     ports:
       - "${AUTH_SERVICE_PORT}:8081"
     environment:
@@ -36,7 +37,8 @@ services:
   account-service:
     build:
       context: ./api
-      dockerfile: account-service/Dockerfile
+      args:
+        SERVICE: account-service
     ports:
       - "${ACCOUNT_SERVICE_PORT}:8082"
     environment:
@@ -73,7 +75,8 @@ services:
   transaction-service:
     build:
       context: ./api
-      dockerfile: transaction-service/Dockerfile
+      args:
+        SERVICE: transaction-service
     ports:
       - "${TRANSACTION_SERVICE_PORT}:8083"
     environment:
@@ -113,7 +116,8 @@ services:
   ledger-service:
     build:
       context: ./api
-      dockerfile: ledger-service/Dockerfile
+      args:
+        SERVICE: ledger-service
     ports:
       - "${LEDGER_SERVICE_PORT}:8084"
     environment:

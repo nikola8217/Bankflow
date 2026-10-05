@@ -20,6 +20,10 @@ jobs:
       matrix:
         service: [auth-service, account-service, transaction-service, ledger-service]
 
+    defaults:
+      run:
+        working-directory: api
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,15 +34,8 @@ jobs:
           cache: maven
           cache-dependency-path: 'api/**/pom.xml'
 
-      - name: Install shared module
-        working-directory: api/shared
-        run: mvn -B install -DskipTests
-
       - name: Run tests
-        working-directory: api/${{ matrix.service }}
-        run: |
-          chmod +x mvnw
-          ./mvnw -B test
+        run: ./mvnw -B test -pl ${{ matrix.service }} -am
 
       - name: Upload test reports
         if: failure()
@@ -46,3 +43,19 @@ jobs:
         with:
           name: test-reports-${{ matrix.service }}
           path: api/${{ matrix.service }}/target/surefire-reports
+
+  docker:
+    name: docker (${{ matrix.service }})
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth-service, account-service, transaction-service, ledger-service]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg SERVICE=${{ matrix.service }} -t bankflow/${{ matrix.service }}:ci ./api

@@ -1,0 +1,10 @@
+**/target/
+**/.idea/
+**/*.iml
+**/*.log
+**/.git
+**/.gitignore
+**/.gitattributes
+**/HELP.md
+Dockerfile
+.dockerignore

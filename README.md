@@ -166,8 +166,9 @@ Messages are keyed by account ID, so events for one account are processed in ord
 Unit tests cover the domain and command handlers; integration tests use **Testcontainers** (real PostgreSQL 16 and Kafka) for everything that depends on locking, SQL or the broker. CI (GitHub Actions) runs the full suite for every service on each pull request; `main` accepts changes only through pull requests.
 
 ```bash
-cd api/shared && mvn install -DskipTests      # shared module first
-cd ../ledger-service && ./mvnw test           # same for each service
+cd api
+./mvnw test                                   # all services
+./mvnw test -pl ledger-service -am            # one service (+ shared)
 ```
 
 Docker must be running for the integration tests.

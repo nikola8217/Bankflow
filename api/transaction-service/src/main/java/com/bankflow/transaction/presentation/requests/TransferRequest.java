@@ -1,7 +1,7 @@
 package com.bankflow.transaction.presentation.requests;
 
-import com.bankflow.transaction.business.dtos.TransferDto;
-import com.bankflow.transaction.presentation.httpValidations.TransactionRequestsValidation;
+import com.bankflow.transaction.application.dtos.Transfer;
+import com.bankflow.transaction.presentation.requests.httpValidations.TransactionRequestsValidation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -15,10 +15,10 @@ public class TransferRequest {
     private UUID toAccountId;
     private BigDecimal amount;
 
-    public TransferDto format(String token, String idempotencyKey, UUID userId) {
+    public Transfer format(String token, String idempotencyKey, UUID userId) {
         TransactionRequestsValidation.validateTransferRequest(this);
         TransactionRequestsValidation.validateIdempotencyKey(idempotencyKey);
-        return new TransferDto(
+        return new Transfer(
                 fromAccountId,
                 toAccountId,
                 amount,

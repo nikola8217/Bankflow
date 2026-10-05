@@ -1,14 +1,14 @@
 package com.bankflow.transaction.presentation.controllers;
 
 import com.bankflow.shared.security.SecurityUtils;
-import com.bankflow.transaction.business.CommandBus;
-import com.bankflow.transaction.business.services.TransactionQueryService;
-import com.bankflow.transaction.business.commands.DepositCommand;
-import com.bankflow.transaction.business.commands.TransferCommand;
-import com.bankflow.transaction.business.commands.WithdrawCommand;
-import com.bankflow.transaction.business.responses.TransactionCreatedResponse;
-import com.bankflow.transaction.business.responses.TransactionStatusResponse;
-import com.bankflow.transaction.business.responses.TransferResponse;
+import com.bankflow.transaction.application.bus.CommandBus;
+import com.bankflow.transaction.application.services.TransactionQueryService;
+import com.bankflow.transaction.application.commands.DepositCommand;
+import com.bankflow.transaction.application.commands.TransferCommand;
+import com.bankflow.transaction.application.commands.WithdrawCommand;
+import com.bankflow.transaction.application.dtos.TransactionCreatedResponse;
+import com.bankflow.transaction.application.dtos.TransactionStatusResponse;
+import com.bankflow.transaction.application.dtos.TransferResponse;
 import com.bankflow.transaction.presentation.requests.AccountTransactionRequest;
 import com.bankflow.transaction.presentation.requests.TransferRequest;
 import lombok.RequiredArgsConstructor;
