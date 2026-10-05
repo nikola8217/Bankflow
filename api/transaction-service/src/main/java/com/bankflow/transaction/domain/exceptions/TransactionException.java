@@ -1,10 +1,10 @@
 package com.bankflow.transaction.domain.exceptions;
 
 import com.bankflow.shared.exceptions.AppException;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 public class TransactionException extends AppException {
-    public TransactionException(String message, HttpStatus status) {
-        super(message, status);
+    public TransactionException(String message, ErrorType type) {
+        super(message, type);
     }
 }

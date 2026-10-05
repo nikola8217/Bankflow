@@ -1,10 +1,10 @@
 package com.bankflow.auth.domain.exceptions;
 
 import com.bankflow.shared.exceptions.AppException;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 public class InvalidCredentialsException extends AppException {
     public InvalidCredentialsException() {
-        super("Invalid email or password", HttpStatus.UNAUTHORIZED);
+        super("Invalid email or password", ErrorType.UNAUTHORIZED);
     }
 }

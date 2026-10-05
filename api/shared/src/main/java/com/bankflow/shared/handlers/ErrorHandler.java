@@ -1,6 +1,7 @@
 package com.bankflow.shared.handlers;
 
 import com.bankflow.shared.exceptions.AppException;
+import com.bankflow.shared.exceptions.ErrorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,19 @@ public class ErrorHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<Map<String, String>> handleAppException(AppException ex) {
         return ResponseEntity
-                .status(ex.getStatus())
+                .status(toHttpStatus(ex.getType()))
                 .body(Map.of("error", ex.getMessage()));
+    }
+
+    static HttpStatus toHttpStatus(ErrorType type) {
+        return switch (type) {
+            case INVALID_REQUEST, BUSINESS_RULE -> HttpStatus.BAD_REQUEST;
+            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case CONFLICT -> HttpStatus.CONFLICT;
+            case UNPROCESSABLE -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+        };
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

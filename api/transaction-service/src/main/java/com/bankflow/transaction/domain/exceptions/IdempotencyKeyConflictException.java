@@ -1,9 +1,9 @@
 package com.bankflow.transaction.domain.exceptions;
 
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 public class IdempotencyKeyConflictException extends TransactionException {
     public IdempotencyKeyConflictException() {
-        super("A request with this Idempotency-Key is already being processed", HttpStatus.CONFLICT);
+        super("A request with this Idempotency-Key is already being processed", ErrorType.CONFLICT);
     }
 }

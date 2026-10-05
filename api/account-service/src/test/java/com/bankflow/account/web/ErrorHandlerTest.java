@@ -1,8 +1,12 @@
 package com.bankflow.account.web;
 
+import com.bankflow.shared.exceptions.AppException;
+import com.bankflow.shared.exceptions.ErrorType;
 import com.bankflow.shared.handlers.ErrorHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -28,6 +32,13 @@ class ErrorHandlerTest {
 
         @GetMapping("/boom")
         public String boom() { throw new IllegalStateException("secret internal detail"); }
+
+        @GetMapping("/fail/{type}")
+        public String fail(@PathVariable ErrorType type) { throw new TestAppException(type); }
+    }
+
+    static class TestAppException extends AppException {
+        TestAppException(ErrorType type) { super("failed: " + type, type); }
     }
 
     private MockMvc mockMvc;
@@ -76,5 +87,21 @@ class ErrorHandlerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.error").value("Something went wrong"))
                 .andExpect(content().string(not(containsString("secret"))));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "INVALID_REQUEST, 400",
+            "BUSINESS_RULE,   400",
+            "UNAUTHORIZED,    401",
+            "NOT_FOUND,       404",
+            "CONFLICT,        409",
+            "UNPROCESSABLE,   422",
+            "UNAVAILABLE,     503"
+    })
+    void appExceptionTypeMapsToHttpStatus(ErrorType type, int expectedStatus) throws Exception {
+        mockMvc.perform(get("/fail/" + type))
+                .andExpect(status().is(expectedStatus))
+                .andExpect(jsonPath("$.error").value("failed: " + type));
     }
 }

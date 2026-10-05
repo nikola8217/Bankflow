@@ -1,10 +1,10 @@
 package com.bankflow.auth.domain.exceptions;
 
 import com.bankflow.shared.exceptions.AppException;
-import org.springframework.http.HttpStatus;
+import com.bankflow.shared.exceptions.ErrorType;
 
 public class UserNotFoundException extends AppException {
     public UserNotFoundException(String message) {
-        super(message, HttpStatus.UNAUTHORIZED);
+        super(message, ErrorType.UNAUTHORIZED);
     }
 }
