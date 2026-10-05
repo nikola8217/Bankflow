@@ -10,7 +10,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 public abstract class AbstractIntegrationTest {
 
     protected static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:16");
-    protected static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.1.0");
+    protected static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.1.0")
+            .withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false");
 
     static {
         POSTGRES.start();
