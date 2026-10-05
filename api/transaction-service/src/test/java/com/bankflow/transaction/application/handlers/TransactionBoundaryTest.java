@@ -4,12 +4,9 @@ import com.bankflow.shared.exceptions.ServiceUnavailableException;
 import com.bankflow.transaction.application.idempotency.IdempotencyGuard;
 import com.bankflow.transaction.application.commands.WithdrawCommand;
 import com.bankflow.transaction.application.dtos.AccountTransaction;
-import com.bankflow.transaction.application.ports.AccountClient;
-import com.bankflow.transaction.application.ports.EventStore;
-import com.bankflow.transaction.application.ports.IdempotencyRepository;
-import com.bankflow.transaction.application.ports.TransactionRunner;
+import com.bankflow.transaction.application.ports.*;
 import com.bankflow.transaction.domain.models.TransactionAggregate;
-import com.bankflow.transaction.application.outbox.OutboxEntry;
+import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.domain.models.AccountSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +37,7 @@ class TransactionBoundaryTest {
     private final UUID userId = UUID.randomUUID();
     private final UUID accountId = UUID.randomUUID();
     private final RecordingTransactionRunner runner = new RecordingTransactionRunner();
-    private final List<OutboxEntry> outbox = new ArrayList<>();
+    private final List<TransactionCreatedEvent> outbox = new ArrayList<>();
 
     private final IdempotencyRepository idempotency = new InMemoryIdempotencyRepositoryTest();
 

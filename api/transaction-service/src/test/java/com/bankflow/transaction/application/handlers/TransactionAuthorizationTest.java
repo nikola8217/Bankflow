@@ -1,5 +1,6 @@
 package com.bankflow.transaction.application.handlers;
 
+import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.application.idempotency.IdempotencyGuard;
 import com.bankflow.transaction.application.commands.DepositCommand;
 import com.bankflow.transaction.application.commands.TransferCommand;
@@ -8,7 +9,6 @@ import com.bankflow.transaction.application.dtos.AccountTransaction;
 import com.bankflow.transaction.application.dtos.Transfer;
 import com.bankflow.transaction.application.ports.*;
 import com.bankflow.transaction.domain.models.TransactionAggregate;
-import com.bankflow.transaction.application.outbox.OutboxEntry;
 import com.bankflow.transaction.domain.exceptions.AccountNotFoundException;
 import com.bankflow.transaction.domain.models.AccountSnapshot;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,9 +48,9 @@ class TransactionAuthorizationTest  {
         }
     }
 
-    private final List<OutboxEntry> outbox = new ArrayList<>();
+    private final List<TransactionCreatedEvent> outbox = new ArrayList<>();
 
-    private final OutboxRepository outboxRepository = outbox::add;
+    private final TransactionEventPublisher eventPublisher = outbox::add;
 
     private final UUID ana = UUID.randomUUID();
     private final UUID jelena = UUID.randomUUID();
@@ -76,9 +76,9 @@ class TransactionAuthorizationTest  {
         TransactionRunner runner = Runnable::run;
         IdempotencyGuard guard = new IdempotencyGuard(idempotency, runner);
 
-        depositHandler = new DepositCommandHandler(accountClient, outboxRepository, guard, eventStore);
-        withdrawHandler = new WithdrawCommandHandler(accountClient, outboxRepository, guard, eventStore);
-        transferHandler = new TransferCommandHandler(accountClient, outboxRepository, guard, eventStore);
+        depositHandler = new DepositCommandHandler(accountClient, eventPublisher, guard, eventStore);
+        withdrawHandler = new WithdrawCommandHandler(accountClient, eventPublisher, guard, eventStore);
+        transferHandler = new TransferCommandHandler(accountClient, eventPublisher, guard, eventStore);
     }
 
     @Test

@@ -1,11 +1,9 @@
 package com.bankflow.transaction.messaging;
 
-import com.bankflow.shared.enums.OutboxStatus;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.AbstractIntegrationTest;
-import com.bankflow.transaction.application.ports.OutboxRepository;
-import com.bankflow.transaction.application.outbox.OutboxEntry;
+import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -31,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OutboxConcurrencyTest extends AbstractIntegrationTest {
 
     @Autowired
-    OutboxRepository outboxRepository;
+    TransactionEventPublisher eventPublisher;
 
     @Autowired
     OutboxWorker outboxWorker;
@@ -41,7 +39,7 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
         UUID accountId = UUID.randomUUID();
         int entries = 50;
         for (int i = 0; i < entries; i++) {
-            outboxRepository.save(entryFor(accountId));
+            eventPublisher.transactionCreated(eventFor(accountId));
         }
 
         int workers = 4;
@@ -68,17 +66,10 @@ class OutboxConcurrencyTest extends AbstractIntegrationTest {
         assertThat(countPublishedFor(accountId)).isEqualTo(entries);
     }
 
-    private OutboxEntry entryFor(UUID accountId) {
-        UUID transactionId = UUID.randomUUID();
-        return OutboxEntry.builder()
-                .aggregateId(transactionId)
-                .eventType("TransactionCreatedEvent")
-                .payload(new TransactionCreatedEvent(
-                        transactionId, accountId, UUID.randomUUID(), TransactionType.WITHDRAWAL,
-                        new BigDecimal("1.00"), "RSD", null, LocalDateTime.now()))
-                .status(OutboxStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
+    private TransactionCreatedEvent eventFor(UUID accountId) {
+        return new TransactionCreatedEvent(
+                UUID.randomUUID(), accountId, UUID.randomUUID(), TransactionType.WITHDRAWAL,
+                new BigDecimal("1.00"), "RSD", null, LocalDateTime.now());
     }
 
     private int countPublishedFor(UUID accountId) {

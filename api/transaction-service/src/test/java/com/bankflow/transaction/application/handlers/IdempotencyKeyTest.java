@@ -10,7 +10,7 @@ import com.bankflow.transaction.application.ports.TransactionRunner;
 import com.bankflow.transaction.application.dtos.TransactionCreatedResponse;
 import com.bankflow.transaction.application.dtos.TransferResponse;
 import com.bankflow.transaction.domain.models.TransactionAggregate;
-import com.bankflow.transaction.application.outbox.OutboxEntry;
+import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.transaction.domain.exceptions.IdempotencyKeyReusedException;
 import com.bankflow.transaction.domain.models.AccountSnapshot;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ class IdempotencyKeyTest {
     private final UUID anasSecondAccount = UUID.randomUUID();
     private final UUID jelenasAccount = UUID.randomUUID();
 
-    private final List<OutboxEntry> outbox = new ArrayList<>();
+    private final List<TransactionCreatedEvent> outbox = new ArrayList<>();
     private final InMemoryIdempotencyRepositoryTest idempotency = new InMemoryIdempotencyRepositoryTest();
 
     private DepositCommandHandler depositHandler;
