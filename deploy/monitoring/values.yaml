@@ -1,0 +1,37 @@
+# Values for the kube-prometheus-stack chart (Prometheus Operator, Prometheus, Grafana,
+# kube-state-metrics, node-exporter), sized for a local Docker Desktop cluster.
+
+# Docker Desktop does not expose these control-plane components; scraping them would only show DOWN targets.
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# Alerting comes in a later step.
+alertmanager:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    # Pick up every ServiceMonitor in the cluster, not only the ones labelled for this Helm release.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    retention: 3d
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 100m
+      limits:
+        memory: 1Gi
+
+grafana:
+  # Admin credentials from a Secret created with kubectl (see deploy/README.md), never committed.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  defaultDashboardsTimezone: browser

@@ -108,16 +108,48 @@ curl -X POST http://localhost/api/auth/register -H "Content-Type: application/js
   -d '{"email":"test@example.com","password":"password123","firstName":"TestN","lastName":"TestL"}'
 ```
 
+## 4. Monitoring
+
+[kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) installs the Prometheus Operator, Prometheus, Grafana, kube-state-metrics and node-exporter. Every BankFlow service ships a `ServiceMonitor` (from the service chart), so Prometheus scrapes `/actuator/prometheus` inside the cluster.
+
+Grafana admin credentials. Created by hand, never committed:
+
+```bash
+kubectl create namespace monitoring
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin \
+  --from-literal=admin-password=<choose-a-password>
+```
+
+Install the stack and the BankFlow dashboard:
+
+```bash
+helm upgrade --install monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+  --version 92.1.0 -n monitoring -f deploy/monitoring/values.yaml
+
+kubectl apply -f deploy/monitoring/bankflow-dashboard.yaml
+```
+
+The `ServiceMonitor`s are rendered only when the Prometheus Operator CRDs exist, so re-run the four `helm upgrade --install` commands from step 2 after installing the stack.
+
+Grafana and Prometheus are internal tools and are not routed through the Gateway; open them with a port-forward:
+
+```bash
+kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80                        # http://localhost:3000, dashboard "BankFlow - Services"
+kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090   # http://localhost:9090/targets
+```
+
 ## Removing everything
 
 ```bash
+helm -n monitoring uninstall monitoring
 helm -n bankflow uninstall auth-service account-service transaction-service ledger-service
 helm -n bankflow uninstall auth-db account-db transaction-db ledger-db
 kubectl delete -f deploy/k8s/gateway.yaml
 helm -n envoy-gateway-system uninstall eg
 kubectl delete -f deploy/k8s/kafka.yaml
 helm -n strimzi uninstall strimzi
-kubectl delete namespace bankflow strimzi envoy-gateway-system
+kubectl delete namespace bankflow strimzi envoy-gateway-system monitoring
 ```
 
 Database volumes (PVCs) are kept by `helm uninstall` and removed with the namespace.

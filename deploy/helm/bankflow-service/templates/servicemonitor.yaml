@@ -1,0 +1,18 @@
+{{- if and .Values.metrics.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") }}
+# Tells Prometheus to scrape /actuator/prometheus of this service from inside the cluster.
+# Rendered only when the Prometheus Operator CRDs exist, so the chart also installs without monitoring.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "bankflow-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "bankflow-service.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: {{ .Values.metrics.interval }}
+  {{- end }}
