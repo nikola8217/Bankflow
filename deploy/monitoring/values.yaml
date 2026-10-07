@@ -35,3 +35,10 @@ grafana:
     userKey: admin-user
     passwordKey: admin-password
   defaultDashboardsTimezone: browser
+  # Logs from Loki next to the Prometheus metrics.
+  additionalDataSources:
+      - name: Loki
+        type: loki
+        uid: loki
+        url: http://loki.monitoring.svc:3100
+        access: proxy

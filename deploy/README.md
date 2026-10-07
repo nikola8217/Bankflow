@@ -139,9 +139,35 @@ kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80               
 kubectl -n monitoring port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090   # http://localhost:9090/targets
 ```
 
+## 5. Logs
+
+The services log one JSON object per line in the cluster (`LOGGING_STRUCTURED_FORMAT_CONSOLE=logstash`, set by the service chart; local runs keep plain text). [Grafana Alloy](https://grafana.com/docs/alloy/) reads the logs of every pod in `bankflow` through the Kubernetes API and pushes them to [Loki](https://grafana.com/oss/loki/); Grafana queries Loki next to Prometheus.
+
+```bash
+helm upgrade --install loki oci://ghcr.io/grafana-community/helm-charts/loki \
+  --version 18.13.8 -n monitoring -f deploy/monitoring/loki-values.yaml
+
+helm repo add grafana https://grafana.github.io/helm-charts
+helm upgrade --install alloy grafana/alloy \
+  --version 1.13.0 -n monitoring -f deploy/monitoring/alloy-values.yaml
+
+# adds the Loki data source to Grafana
+helm upgrade --install monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+  --version 92.1.0 -n monitoring -f deploy/monitoring/values.yaml
+kubectl apply -f deploy/monitoring/bankflow-dashboard.yaml
+```
+
+Re-run the four service `helm upgrade --install` commands from step 2 so the services switch to JSON logs. In Grafana, **Explore → Loki**, for example:
+
+```logql
+{namespace="bankflow", level="ERROR"}
+{app="ledger-service"} | json | logger_name =~ ".*TransactionEventConsumer"
+```
+
 ## Removing everything
 
 ```bash
+helm -n monitoring uninstall alloy loki monitoring
 helm -n monitoring uninstall monitoring
 helm -n bankflow uninstall auth-service account-service transaction-service ledger-service
 helm -n bankflow uninstall auth-db account-db transaction-db ledger-db
