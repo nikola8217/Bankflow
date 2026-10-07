@@ -10,7 +10,10 @@ replicaCount: 1
 port: 8080
 
 # Plain configuration, rendered into a ConfigMap and passed as environment variables.
-env: {}
+# Keys from a service's values file are merged with these defaults.
+env:
+  # One JSON object per log line in the cluster, so Loki can filter by field; local runs keep plain text.
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: logstash
 
 # Secret configuration: environment variable -> key in the Secret named by appSecret.
 appSecret: bankflow-app
