@@ -3,5 +3,7 @@ image:
 port: 8081
 database:
   url: jdbc:postgresql://auth-db:5432/auth_db
+route:
+  pathPrefix: /api/auth
 secretEnv:
   JWT_SECRET: jwt-secret

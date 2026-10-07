@@ -1,0 +1,21 @@
+# Single entry point into the cluster (Gateway API, implemented by Envoy Gateway).
+# Each service attaches its own HTTPRoute through the bankflow-service chart.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: bankflow
+  namespace: bankflow
+spec:
+  gatewayClassName: envoy
+  listeners:
+    # Docker Desktop publishes the LoadBalancer on localhost, so this becomes http://localhost.
+    - name: http
+      protocol: HTTP
+      port: 80
