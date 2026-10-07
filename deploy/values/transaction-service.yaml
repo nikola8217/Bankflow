@@ -1,0 +1,11 @@
+image:
+  repository: ghcr.io/nikola8217/bankflow-transaction-service
+port: 8083
+database:
+  url: jdbc:postgresql://transaction-db:5432/transaction_db
+env:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: bankflow-kafka-bootstrap:9092
+  ACCOUNT_SERVICE_URL: http://account-service:8082
+secretEnv:
+  JWT_SECRET: jwt-secret
+  INTERNAL_API_KEY: internal-api-key
