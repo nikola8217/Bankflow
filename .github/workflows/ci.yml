@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -47,15 +50,74 @@ jobs:
   docker:
     name: docker (${{ matrix.service }})
 
+    needs: test
+
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     strategy:
       fail-fast: false
       matrix:
         service: [auth-service, account-service, transaction-service, ledger-service]
 
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/bankflow-${{ matrix.service }}
+
     steps:
       - uses: actions/checkout@v4
 
+      - uses: docker/setup-buildx-action@v3
+
       - name: Build image
-        run: docker build --build-arg SERVICE=${{ matrix.service }} -t bankflow/${{ matrix.service }}:ci ./api
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          build-args: SERVICE=${{ matrix.service }}
+          # Keep the image in the local Docker daemon so Trivy can scan it before anything is pushed.
+          load: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          # Links the GHCR package to this repository.
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      # Pinned to a commit SHA: trivy-action tags were hijacked in the March 2026 supply chain attack
+      # (GHSA-69fq-xp46-6x23). v0.35.0 and Trivy v0.69.3 are the versions the advisory lists as safe.
+      - name: Scan image (report HIGH and CRITICAL)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          version: v0.69.3
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+
+      - name: Scan image (fail on CRITICAL)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          version: v0.69.3
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          skip-setup-trivy: true
+
+      # Pull requests only build and scan; images are published from main.
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
