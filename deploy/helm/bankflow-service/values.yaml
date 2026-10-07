@@ -21,6 +21,11 @@ database:
   url: ""
   credentialsSecret: bankflow-db
 
+# Prometheus scraping of /actuator/prometheus (needs the Prometheus Operator CRDs).
+metrics:
+  enabled: true
+  interval: 15s
+
 # Public route through the Gateway; empty = no HTTPRoute.
 route:
   gateway: bankflow
