@@ -1,0 +1,17 @@
+# Headless service: gives the StatefulSet pod a stable DNS name, e.g. auth-db.bankflow.svc.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

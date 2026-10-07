@@ -195,6 +195,8 @@ docker compose up -d --build
 
 Kafdrop (Kafka UI): http://localhost:9000. 
 
+To run on Kubernetes instead, see [deploy/README.md](deploy/README.md).
+
 In Swagger, click **Authorize** and paste the token from `POST /api/auth/login`.
 
 To run a single service from the IDE, keep the rest in Docker and set `JWT_SECRET` (plus `INTERNAL_API_KEY` for Account and Transaction) as environment variables in the run configuration. The defaults point to the databases and to Kafka on `localhost:9094`.
