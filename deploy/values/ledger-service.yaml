@@ -1,0 +1,9 @@
+image:
+  repository: ghcr.io/nikola8217/bankflow-ledger-service
+port: 8084
+database:
+  url: jdbc:postgresql://ledger-db:5432/ledger_db
+env:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: bankflow-kafka-bootstrap:9092
+secretEnv:
+  JWT_SECRET: jwt-secret

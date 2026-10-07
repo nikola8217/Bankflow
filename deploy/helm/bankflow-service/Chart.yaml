@@ -1,0 +1,5 @@
+apiVersion: v2
+name: bankflow-service
+description: One BankFlow Spring Boot service (Deployment, Service, ConfigMap); installed once per service
+type: application
+version: 0.1.0

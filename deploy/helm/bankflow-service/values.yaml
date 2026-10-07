@@ -1,0 +1,30 @@
+image:
+  repository: ""
+  # Git SHA of the commit the image was built from; set per install (never "latest").
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Port the service listens on (server.port); the Kubernetes Service uses the same port.
+port: 8080
+
+# Plain configuration, rendered into a ConfigMap and passed as environment variables.
+env: {}
+
+# Secret configuration: environment variable -> key in the Secret named by appSecret.
+appSecret: bankflow-app
+secretEnv: {}
+
+# Database: URL goes to the ConfigMap, username/password come from this Secret.
+database:
+  url: ""
+  credentialsSecret: bankflow-db
+
+# The image sets -XX:MaxRAMPercentage=75, so the JVM heap follows the memory limit.
+resources:
+  requests:
+    memory: 384Mi
+    cpu: 100m
+  limits:
+    memory: 1Gi
