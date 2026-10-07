@@ -1,0 +1,20 @@
+image:
+  repository: postgres
+  tag: "16"
+
+# Name of the database to create, e.g. auth_db. Set per release.
+database: ""
+
+# Existing Secret with the keys "username" and "password".
+# Created with kubectl, never committed (see deploy/README.md).
+credentialsSecret: bankflow-db
+
+storage:
+  size: 1Gi
+
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
