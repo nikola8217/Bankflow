@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/nikola8217/Bankflow/actions/workflows/ci.yml/badge.svg)](https://github.com/nikola8217/Bankflow/actions/workflows/ci.yml)
 
-A distributed banking backend demonstrating event sourcing, a choreography saga over Kafka and the transactional outbox, designed to stay correct under concurrency and partial failure. Its consistency guarantees are verified by automated tests running against real PostgreSQL and Kafka (Testcontainers).
+A distributed banking backend demonstrating event sourcing, a choreography saga over Kafka and the transactional outbox, designed to stay correct under concurrency and partial failure. Its consistency guarantees are verified by automated tests running against real PostgreSQL and Kafka (Testcontainers). It runs on Kubernetes with Helm, with metrics, dashboards and centralized structured logs.
 
-**Tech stack:** Java 21 · Spring Boot 4 · Apache Kafka · PostgreSQL · Docker Compose · Testcontainers · GitHub Actions
+**Tech stack:** Java 21 · Spring Boot 4 · Apache Kafka (KRaft) · PostgreSQL · Kubernetes · Helm · Strimzi · Envoy Gateway · Prometheus · Grafana · Loki · Testcontainers · GitHub Actions · Trivy
 
 ---
 
@@ -157,7 +157,7 @@ Write endpoints accept an optional `Idempotency-Key` header.
 | `transaction-approved` | ledger-service | transaction-service |
 | `transaction-declined` | ledger-service | transaction-service |
 
-Messages are keyed by account ID, so events for one account are processed in order.
+Messages are keyed by account ID, so events for one account are processed in order. Topics are created explicitly (3 partitions, plus a `<topic>-dlt` dead-letter topic each); broker auto-creation is disabled.
 
 ---
 
@@ -172,6 +172,42 @@ cd api
 ```
 
 Docker must be running for the integration tests.
+
+---
+
+## CI/CD
+
+Every pull request and every push to `main` runs the GitHub Actions pipeline:
+
+1. **Test** - the full suite for each service runs in parallel (matrix job).
+2. **Build** - a Docker image per service.
+3. **Scan** - Trivy reports HIGH and CRITICAL vulnerabilities in each image; any CRITICAL one fails the build.
+4. **Publish** (`main` only) - images are pushed to GitHub Container Registry as `ghcr.io/nikola8217/bankflow-<service>:<commit-sha>` and `:latest`.
+
+Third-party actions with a history of compromise are pinned to a commit SHA. `main` is protected and accepts changes only through pull requests.
+
+---
+
+## Running on Kubernetes
+
+The same system runs on a local Kubernetes cluster (Docker Desktop), deployed with Helm:
+
+- **PostgreSQL** - one instance per service (StatefulSet with a persistent volume).
+- **Kafka** - managed by the **Strimzi** operator, in KRaft mode.
+- **Services** - one reusable Helm chart for all four: startup, liveness and readiness probes; configuration in a ConfigMap (a change triggers a rolling restart); secrets read from a Kubernetes Secret, never committed.
+- **Gateway** - **Envoy Gateway** (Gateway API) exposes `/api/**` on `http://localhost`; `/actuator` and `/internal` are not routed, so they stay reachable only inside the cluster.
+
+Step-by-step instructions: [deploy/README.md](deploy/README.md).
+
+---
+
+## Observability
+
+- **Metrics.** Every service exposes Prometheus metrics; Prometheus (kube-prometheus-stack) discovers them through a `ServiceMonitor`. HTTP latency histograms give p95 and p99 per service.
+- **Dashboard as code.** The Grafana dashboard is provisioned from [deploy/monitoring/bankflow-dashboard.yaml](deploy/monitoring/bankflow-dashboard.yaml): services up, pod restarts, request rate, 5xx errors, p95/p99 latency, JVM heap, database connections in use and recent error logs.
+- **Structured logs.** Services log JSON; Grafana Alloy collects pod logs into **Loki**, labelled by service and level, so all errors across the system are one query away: `{namespace="bankflow", level="ERROR"}`.
+
+![Grafana dashboard](docs/images/grafana-dashboard.png)
 
 ---
 
@@ -193,9 +229,9 @@ docker compose up -d --build
 | Transaction | http://localhost:8083/swagger-ui.html |
 | Ledger | http://localhost:8084/swagger-ui.html |
 
-Kafdrop (Kafka UI): http://localhost:9000. 
+Kafdrop (Kafka UI): http://localhost:9000.
 
-To run on Kubernetes instead, see [deploy/README.md](deploy/README.md).
+To run on Kubernetes instead, see [Running on Kubernetes](#running-on-kubernetes).
 
 In Swagger, click **Authorize** and paste the token from `POST /api/auth/login`.
 
