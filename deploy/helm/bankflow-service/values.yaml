@@ -21,6 +21,11 @@ database:
   url: ""
   credentialsSecret: bankflow-db
 
+# Public route through the Gateway; empty = no HTTPRoute.
+route:
+  gateway: bankflow
+  pathPrefix: ""
+
 # The image sets -XX:MaxRAMPercentage=75, so the JVM heap follows the memory limit.
 resources:
   requests:

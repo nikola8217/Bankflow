@@ -75,16 +75,49 @@ Check that all four become `1/1` ready (the startup probe gives each JVM up to t
 kubectl -n bankflow get pods -w
 ```
 
-Until the gateway is in place, reach a service with a port-forward, e.g. `kubectl -n bankflow port-forward svc/auth-service 8081:8081` and open http://localhost:8081/swagger-ui.html.
+To open a service's Swagger UI, use a port-forward, e.g. `kubectl -n bankflow port-forward svc/auth-service 8081:8081` and http://localhost:8081/swagger-ui.html.
+
+## 3. Gateway
+
+[Envoy Gateway](https://gateway.envoyproxy.io) implements the Kubernetes Gateway API. One Gateway receives all traffic on http://localhost and each service's HTTPRoute (from its values file) forwards its path prefix:
+
+| Path | Service |
+|---|---|
+| `/api/auth/**` | auth-service |
+| `/api/accounts/**` | account-service |
+| `/api/transactions/**` | transaction-service |
+| `/api/ledger/**` | ledger-service |
+
+`/actuator/**` and `/internal/**` are not routed, so they stay inside the cluster.
+
+```bash
+helm upgrade --install eg oci://docker.io/envoyproxy/gateway-helm \
+  --version v1.9.2 -n envoy-gateway-system --create-namespace
+kubectl -n envoy-gateway-system wait deployment/envoy-gateway --for=condition=Available --timeout=300s
+
+kubectl apply -f deploy/k8s/gateway.yaml
+kubectl -n bankflow wait gateway/bankflow --for=condition=Programmed --timeout=300s
+```
+
+The routes are part of the service chart, so re-run the four `helm upgrade --install` commands from step 2 after the gateway exists.
+
+Try it:
+
+```bash
+curl -X POST http://localhost/api/auth/register -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123","firstName":"TestN","lastName":"TestL"}'
+```
 
 ## Removing everything
 
 ```bash
 helm -n bankflow uninstall auth-service account-service transaction-service ledger-service
 helm -n bankflow uninstall auth-db account-db transaction-db ledger-db
+kubectl delete -f deploy/k8s/gateway.yaml
+helm -n envoy-gateway-system uninstall eg
 kubectl delete -f deploy/k8s/kafka.yaml
 helm -n strimzi uninstall strimzi
-kubectl delete namespace bankflow strimzi
+kubectl delete namespace bankflow strimzi envoy-gateway-system
 ```
 
 Database volumes (PVCs) are kept by `helm uninstall` and removed with the namespace.

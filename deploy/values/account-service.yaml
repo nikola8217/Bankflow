@@ -5,6 +5,8 @@ database:
   url: jdbc:postgresql://account-db:5432/account_db
 env:
   SPRING_KAFKA_BOOTSTRAP_SERVERS: bankflow-kafka-bootstrap:9092
+route:
+  pathPrefix: /api/accounts
 secretEnv:
   JWT_SECRET: jwt-secret
   INTERNAL_API_KEY: internal-api-key
