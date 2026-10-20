@@ -9,4 +9,3 @@ route:
   pathPrefix: /api/accounts
 secretEnv:
   JWT_SECRET: jwt-secret
-  INTERNAL_API_KEY: internal-api-key

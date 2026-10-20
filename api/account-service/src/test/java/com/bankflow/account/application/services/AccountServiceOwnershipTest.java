@@ -96,11 +96,4 @@ class AccountServiceOwnershipTest {
 
         assertThat(response.status()).isEqualTo(AccountStatus.CLOSED);
     }
-
-    @Test
-    void internalLookupIgnoresOwnership() {
-        AccountResponse response = accountService.getAccountInternal(anasAccountId);
-
-        assertThat(response.userId()).isEqualTo(ana);
-    }
 }

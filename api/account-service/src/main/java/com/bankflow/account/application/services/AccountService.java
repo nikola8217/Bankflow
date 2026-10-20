@@ -52,12 +52,6 @@ public class AccountService {
         return AccountResponse.from(findOwned(id, currentUserId));
     }
 
-    public AccountResponse getAccountInternal(UUID id) {
-        Account account = accountRepository.findById(id)
-                .orElseThrow(() -> new AccountNotFoundException(id));
-        return AccountResponse.from(account);
-    }
-
     public AccountResponse closeAccount(UUID id, UUID currentUserId) {
         Account account = findOwned(id, currentUserId);
 
