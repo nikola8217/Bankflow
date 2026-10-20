@@ -20,12 +20,16 @@ class LedgerDepositTest extends AbstractIntegrationTest {
     LedgerService ledgerService;
 
     @Autowired
+    AccountLifecycleService accountLifecycle;
+
+    @Autowired
     JdbcTemplate jdbcTemplate;
 
     @Test
     void bookedDepositIsConfirmedBackToTransactionService() {
         UUID accountId = UUID.randomUUID();
-        ledgerService.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
+
+        accountLifecycle.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
 
         TransactionCreatedEvent deposit = new TransactionCreatedEvent(
                 UUID.randomUUID(), accountId, UUID.randomUUID(),

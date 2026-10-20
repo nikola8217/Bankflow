@@ -19,8 +19,11 @@ public class KafkaTopicConfig {
                 topic(Topics.TRANSACTION_DECLINED, partitions, replicas),
                 topic(Topics.TRANSACTION_CREATED, partitions, replicas),
                 topic(Topics.ACCOUNT_CREATED, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSE_REQUESTED, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSURE_DECIDED, partitions, replicas),
                 topic(Topics.TRANSACTION_CREATED + Topics.DLT_SUFFIX, partitions, replicas),
-                topic(Topics.ACCOUNT_CREATED + Topics.DLT_SUFFIX, partitions, replicas)
+                topic(Topics.ACCOUNT_CREATED + Topics.DLT_SUFFIX, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSE_REQUESTED + Topics.DLT_SUFFIX, partitions, replicas)
         );
     }
 

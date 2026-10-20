@@ -6,7 +6,6 @@ import com.bankflow.ledger.application.ports.ProcessedEventRepository;
 import com.bankflow.ledger.application.projections.TransactionHistoryProjection;
 import com.bankflow.ledger.domain.models.Balance;
 import com.bankflow.shared.enums.TransactionStatus;
-import com.bankflow.shared.events.AccountCreatedEvent;
 import com.bankflow.shared.events.TransactionApprovedEvent;
 import com.bankflow.shared.events.TransactionCreatedEvent;
 import com.bankflow.shared.events.TransactionDeclinedEvent;
@@ -21,6 +20,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LedgerService {
 
+    private static final String ACCOUNT_CLOSED = "Account is closed";
+
     private final BalanceRepository balanceRepository;
     private final LedgerEventPublisher eventPublisher;
     private final ProcessedEventRepository processedEventRepository;
@@ -29,8 +30,10 @@ public class LedgerService {
     @Transactional
     public void process(TransactionCreatedEvent event) {
         String key = event.transactionId() + "_CREATED";
+
         if (processedEventRepository.exists(key)) {
             log.warn("Event already processed: {}", key);
+
             return;
         }
 
@@ -45,22 +48,40 @@ public class LedgerService {
 
     private void handleDeposit(TransactionCreatedEvent event) {
         Balance balance = lock(event.accountId(), event.currency());
+
+        if (balance.isClosed()) {
+            decline(event, ACCOUNT_CLOSED);
+
+            return;
+        }
+
         balance.credit(event.amount());
         balanceRepository.save(balance);
+
         approve(event);
+
         log.info("Deposit processed for account: {}", event.accountId());
     }
 
     private void handleWithdrawal(TransactionCreatedEvent event) {
         Balance balance = lock(event.accountId(), event.currency());
 
+        if (balance.isClosed()) {
+            decline(event, ACCOUNT_CLOSED);
+
+            return;
+        }
+
         if (!balance.canDebit(event.amount())) {
             decline(event, "Insufficient funds");
+
             return;
         }
 
         balance.debit(event.amount());
+
         balanceRepository.save(balance);
+
         approve(event);
     }
 
@@ -70,6 +91,7 @@ public class LedgerService {
 
         if (fromId.equals(toId)) {
             decline(event, "Cannot transfer to the same account");
+
             return;
         }
 
@@ -79,15 +101,24 @@ public class LedgerService {
         Balance from = fromFirst ? first : second;
         Balance to = fromFirst ? second : first;
 
+        if (from.isClosed() || to.isClosed()) {
+            decline(event, ACCOUNT_CLOSED);
+
+            return;
+        }
+
         if (!from.canDebit(event.amount())) {
             decline(event, "Insufficient funds");
+
             return;
         }
 
         from.debit(event.amount());
         to.credit(event.amount());
+
         balanceRepository.save(from);
         balanceRepository.save(to);
+
         approve(event);
     }
 
@@ -103,7 +134,9 @@ public class LedgerService {
                 event.type(), event.amount(), event.currency(),
                 event.targetAccountId(), event.createdAt()
         ));
+
         historyProjection.project(event, TransactionStatus.COMPLETED, null);
+
         log.info("Transaction approved: {}", event.transactionId());
     }
 
@@ -113,13 +146,9 @@ public class LedgerService {
                 event.type(), event.amount(), event.currency(),
                 event.targetAccountId(), reason, event.createdAt()
         ));
-        historyProjection.project(event, TransactionStatus.FAILED, reason);
-        log.warn("Transaction declined: {} ({})", event.transactionId(), reason);
-    }
 
-    @Transactional
-    public void registerAccount(AccountCreatedEvent event) {
-        balanceRepository.registerAccount(event.accountId(), event.userId(), event.currency());
-        log.info("Account registered: {} (owner {})", event.accountId(), event.userId());
+        historyProjection.project(event, TransactionStatus.FAILED, reason);
+
+        log.warn("Transaction declined: {} ({})", event.transactionId(), reason);
     }
 }

@@ -2,7 +2,7 @@ package com.bankflow.ledger.messaging;
 
 import com.bankflow.ledger.AbstractIntegrationTest;
 import com.bankflow.ledger.application.ports.BalanceRepository;
-import com.bankflow.ledger.application.services.LedgerService;
+import com.bankflow.ledger.application.services.AccountLifecycleService;
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.AccountCreatedEvent;
 import com.bankflow.shared.events.TransactionCreatedEvent;
@@ -36,7 +36,7 @@ class KafkaErrorHandlingTest extends AbstractIntegrationTest {
     private static final String POISON = "dfdashdhjk";
 
     @Autowired
-    LedgerService ledgerService;
+    AccountLifecycleService accountLifecycle;
 
     @Autowired
     BalanceRepository balanceRepository;
@@ -47,7 +47,8 @@ class KafkaErrorHandlingTest extends AbstractIntegrationTest {
     @Test
     void poisonMessageGoesToDltAndDoesNotBlockTheConsumer() throws Exception {
         UUID accountId = UUID.randomUUID();
-        ledgerService.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
+
+        accountLifecycle.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers(),
@@ -59,6 +60,7 @@ class KafkaErrorHandlingTest extends AbstractIntegrationTest {
         TransactionCreatedEvent deposit = new TransactionCreatedEvent(
                 UUID.randomUUID(), accountId, UUID.randomUUID(), TransactionType.DEPOSIT,
                 new BigDecimal("500.00"), "RSD", null, LocalDateTime.now());
+
         kafkaTemplate.send(TOPIC, accountId.toString(), deposit).get();
 
         awaitBalance(accountId, "500.00");
@@ -68,11 +70,13 @@ class KafkaErrorHandlingTest extends AbstractIntegrationTest {
 
     private void awaitBalance(UUID accountId, String expected) throws InterruptedException {
         long deadline = System.currentTimeMillis() + 30_000;
+
         while (System.currentTimeMillis() < deadline) {
             BigDecimal amount = balanceRepository.findByAccountId(accountId).orElseThrow().getAmount();
             if (amount.compareTo(new BigDecimal(expected)) == 0) return;
             Thread.sleep(200);
         }
+
         fail("Balance did not reach " + expected + " within 30s: consumer is probably stuck");
     }
 
@@ -85,7 +89,9 @@ class KafkaErrorHandlingTest extends AbstractIntegrationTest {
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class))) {
 
             consumer.subscribe(List.of(DLT));
+
             long deadline = System.currentTimeMillis() + 30_000;
+
             while (System.currentTimeMillis() < deadline) {
                 for (ConsumerRecord<String, byte[]> record : consumer.poll(Duration.ofMillis(500))) {
                     if (POISON.equals(new String(record.value(), StandardCharsets.UTF_8))) {
@@ -94,6 +100,7 @@ class KafkaErrorHandlingTest extends AbstractIntegrationTest {
                 }
             }
         }
+
         fail("Poison message not found in " + DLT);
     }
 }

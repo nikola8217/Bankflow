@@ -32,4 +32,7 @@ public class BalanceJpaEntity {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(nullable = false)
+    private boolean closed;
 }

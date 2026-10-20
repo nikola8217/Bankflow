@@ -14,6 +14,7 @@ public class BalanceMapper {
         model.setAmount(balance.getAmount());
         model.setCurrency(balance.getCurrency());
         model.setUpdatedAt(balance.getUpdatedAt());
+        model.setClosed(balance.isClosed());
         return model;
     }
 
@@ -23,7 +24,8 @@ public class BalanceMapper {
                 model.getAccountId(),
                 model.getAmount(),
                 model.getCurrency(),
-                model.getUpdatedAt()
+                model.getUpdatedAt(),
+                model.isClosed()
         );
     }
 }
