@@ -20,9 +20,9 @@ class DepositStatusTest {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
 
-        TransactionAuthorizationTest.StubAccountClient accounts = new TransactionAuthorizationTest.StubAccountClient();
+        TransactionAuthorizationTest.StubAccountDirectory accounts = new TransactionAuthorizationTest.StubAccountDirectory();
 
-        accounts.accounts.put(accountId, new AccountSnapshot(accountId, userId, "CHECKING", "RSD", "ACTIVE"));
+        accounts.accounts.put(accountId, new AccountSnapshot(accountId, userId,"RSD", "ACTIVE"));
 
         TransactionAuthorizationTest.InMemoryEventStore eventStore = new TransactionAuthorizationTest.InMemoryEventStore();
 

@@ -43,16 +43,20 @@ class IdempotencyKeyTest {
 
     @BeforeEach
     void setUp() {
-        TransactionAuthorizationTest.StubAccountClient accountClient = new TransactionAuthorizationTest.StubAccountClient();
-        accountClient.accounts.put(anasAccount, new AccountSnapshot(anasAccount, ana, "CHECKING", "RSD", "ACTIVE"));
-        accountClient.accounts.put(anasSecondAccount, new AccountSnapshot(anasSecondAccount, ana, "SAVINGS", "RSD", "ACTIVE"));
-        accountClient.accounts.put(jelenasAccount, new AccountSnapshot(jelenasAccount, jelena, "CHECKING", "RSD", "ACTIVE"));
+        TransactionAuthorizationTest.StubAccountDirectory accountClient = new TransactionAuthorizationTest.StubAccountDirectory();
+
+        accountClient.accounts.put(anasAccount, new AccountSnapshot(anasAccount, ana, "RSD", "ACTIVE"));
+        accountClient.accounts.put(anasSecondAccount, new AccountSnapshot(anasSecondAccount, ana, "RSD", "ACTIVE"));
+        accountClient.accounts.put(jelenasAccount, new AccountSnapshot(jelenasAccount, jelena, "RSD", "ACTIVE"));
 
         EventStore eventStore = new EventStore() {
             public void save(TransactionAggregate aggregate) { aggregate.pullDomainEvents(); }
+
             public Optional<TransactionAggregate> load(UUID id) { return Optional.empty(); }
         };
+
         TransactionRunner runner = Runnable::run;
+
         IdempotencyGuard guard = new IdempotencyGuard(idempotency, runner);
 
         depositHandler = new DepositCommandHandler(accountClient, outbox::add, guard, eventStore);

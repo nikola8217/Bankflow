@@ -1,25 +1,32 @@
 package com.bankflow.transaction.application.bus;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-
+/**
+ * Dispatches each command to the one handler registered for its type.
+ * Handlers are indexed once at startup, so two handlers for the same command fail the boot instead of a request.
+ */
 @Component
-@RequiredArgsConstructor
 public class CommandBus {
 
-    private final List<CommandHandler<?, ?>> handlers;
+    private final Map<Class<?>, CommandHandler<?, ?>> handlers;
+
+    public CommandBus(List<CommandHandler<?, ?>> handlers) {
+        this.handlers = handlers.stream().collect(Collectors.<CommandHandler<?, ?>, Class<?>, CommandHandler<?, ?>>
+                toUnmodifiableMap(CommandHandler::getCommandType, Function.identity()));
+    }
 
     @SuppressWarnings("unchecked")
     public <R> R send(Command<R> command) {
-        return handlers.stream()
-                .filter(h -> h.getCommandType().equals(command.getClass()))
-                .findFirst()
-                .map(h -> ((CommandHandler<Command<R>, R>) h).handle(command))
-                .orElseThrow(() -> new RuntimeException(
-                        "No handler found for command: " + command.getClass().getSimpleName()
-                ));
+        CommandHandler<Command<R>, R> handler = (CommandHandler<Command<R>, R>) handlers.get(command.getClass());
+        if (handler == null) {
+            throw new IllegalStateException("No handler registered for command: " + command.getClass().getSimpleName());
+        }
+        return handler.handle(command); // may be null for commands that return nothing (Command<Void>)
     }
 }
