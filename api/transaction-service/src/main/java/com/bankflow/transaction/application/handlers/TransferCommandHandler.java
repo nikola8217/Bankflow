@@ -5,7 +5,7 @@ import com.bankflow.transaction.application.commands.TransferCommand;
 import com.bankflow.transaction.application.dtos.Transfer;
 import com.bankflow.transaction.application.idempotency.IdempotencyGuard;
 import com.bankflow.transaction.application.idempotency.IdempotentRequest;
-import com.bankflow.transaction.application.ports.AccountClient;
+import com.bankflow.transaction.application.ports.AccountDirectory;
 import com.bankflow.transaction.application.ports.EventStore;
 import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 import com.bankflow.transaction.application.dtos.TransferResponse;
@@ -26,7 +26,7 @@ public class TransferCommandHandler extends BaseTransactionHandler
     private final IdempotencyGuard idempotency;
     private final EventStore eventStore;
 
-    public TransferCommandHandler(AccountClient accountClient,
+    public TransferCommandHandler(AccountDirectory accountClient,
                                   TransactionEventPublisher eventPublisher,
                                   IdempotencyGuard idempotency,
                                   EventStore eventStore) {

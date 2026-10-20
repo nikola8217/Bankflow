@@ -2,7 +2,7 @@ package com.bankflow.transaction.application.handlers;
 
 import com.bankflow.shared.enums.TransactionType;
 import com.bankflow.shared.events.TransactionCreatedEvent;
-import com.bankflow.transaction.application.ports.AccountClient;
+import com.bankflow.transaction.application.ports.AccountDirectory;
 import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 import com.bankflow.transaction.domain.exceptions.AccountNotActiveException;
 import com.bankflow.transaction.domain.exceptions.AccountNotFoundException;
@@ -16,22 +16,32 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public abstract class BaseTransactionHandler {
 
-    protected final AccountClient accountClient;
+    protected final AccountDirectory accounts;
     protected final TransactionEventPublisher eventPublisher;
 
     protected AccountSnapshot getActiveAccount(UUID accountId) {
-        AccountSnapshot account = accountClient.getAccount(accountId);
+        AccountSnapshot account = findAccount(accountId);
+
         ensureActive(account);
+
         return account;
     }
 
     protected AccountSnapshot getOwnedActiveAccount(UUID accountId, UUID userId) {
-        AccountSnapshot account = accountClient.getAccount(accountId);
+        AccountSnapshot account = findAccount(accountId);
+
         if (!account.userId().equals(userId)) {
             throw new AccountNotFoundException(accountId);
         }
+
         ensureActive(account);
+
         return account;
+    }
+
+    private AccountSnapshot findAccount(UUID accountId) {
+        return accounts.findAccount(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
     }
 
     private void ensureActive(AccountSnapshot account) {

@@ -25,6 +25,5 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
         registry.add("jwt.secret", () -> "test-secret-for-integration-tests-only-32b");
-        registry.add("internal.api-key", () -> "test-internal-api-key");
     }
 }

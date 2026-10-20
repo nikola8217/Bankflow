@@ -5,7 +5,7 @@ import com.bankflow.transaction.application.commands.WithdrawCommand;
 import com.bankflow.transaction.application.dtos.AccountTransaction;
 import com.bankflow.transaction.application.idempotency.IdempotencyGuard;
 import com.bankflow.transaction.application.idempotency.IdempotentRequest;
-import com.bankflow.transaction.application.ports.AccountClient;
+import com.bankflow.transaction.application.ports.AccountDirectory;
 import com.bankflow.transaction.application.ports.EventStore;
 import com.bankflow.transaction.application.ports.TransactionEventPublisher;
 import com.bankflow.transaction.application.dtos.TransactionCreatedResponse;
@@ -24,7 +24,7 @@ public class WithdrawCommandHandler extends BaseTransactionHandler
     private final IdempotencyGuard idempotency;
     private final EventStore eventStore;
 
-    public WithdrawCommandHandler(AccountClient accountClient,
+    public WithdrawCommandHandler(AccountDirectory accountClient,
                                   TransactionEventPublisher eventPublisher,
                                   IdempotencyGuard idempotency,
                                   EventStore eventStore) {

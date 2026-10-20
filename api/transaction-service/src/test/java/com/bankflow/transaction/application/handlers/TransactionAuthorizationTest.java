@@ -22,14 +22,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TransactionAuthorizationTest  {
 
-    static class StubAccountClient implements AccountClient {
+    static class StubAccountDirectory implements AccountDirectory {
         final Map<UUID, AccountSnapshot> accounts = new HashMap<>();
 
         @Override
-        public AccountSnapshot getAccount(UUID accountId) {
-            AccountSnapshot account = accounts.get(accountId);
-            if (account == null) throw new AccountNotFoundException(accountId);
-            return account;
+        public Optional<AccountSnapshot> findAccount(UUID accountId) {
+            return Optional.ofNullable(accounts.get(accountId));
         }
     }
 
@@ -57,23 +55,27 @@ class TransactionAuthorizationTest  {
     private final UUID anasAccount = UUID.randomUUID();
     private final UUID jelenasAccount = UUID.randomUUID();
 
-    private StubAccountClient accountClient;
+    private StubAccountDirectory accountClient;
     private DepositCommandHandler depositHandler;
     private WithdrawCommandHandler withdrawHandler;
     private TransferCommandHandler transferHandler;
 
     @BeforeEach
     void setUp() {
-        accountClient = new StubAccountClient();
+        accountClient = new StubAccountDirectory();
+
         accountClient.accounts.put(anasAccount,
-                new AccountSnapshot(anasAccount, ana, "CHECKING", "RSD", "ACTIVE"));
+                new AccountSnapshot(anasAccount, ana,"RSD", "ACTIVE"));
+
         accountClient.accounts.put(jelenasAccount,
-                new AccountSnapshot(jelenasAccount, jelena, "CHECKING", "RSD", "ACTIVE"));
+                new AccountSnapshot(jelenasAccount, jelena,"RSD", "ACTIVE"));
 
         InMemoryEventStore eventStore = new InMemoryEventStore();
+
         InMemoryIdempotencyRepositoryTest idempotency = new InMemoryIdempotencyRepositoryTest();
 
         TransactionRunner runner = Runnable::run;
+
         IdempotencyGuard guard = new IdempotencyGuard(idempotency, runner);
 
         depositHandler = new DepositCommandHandler(accountClient, eventPublisher, guard, eventStore);
