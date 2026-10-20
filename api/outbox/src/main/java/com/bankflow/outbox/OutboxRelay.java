@@ -11,14 +11,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Sends pending outbox rows to Kafka, oldest first.
- * Rows are claimed with FOR UPDATE SKIP LOCKED, so several instances can run side by side
- * without sending the same row twice. A row is marked PROCESSED only after Kafka acknowledged it.
+ * Sends pending outbox rows to Kafka, oldest first, and marks a row PROCESSED only after Kafka acknowledged it.
+ * Every replica runs the relay, but only the one holding an advisory lock publishes. Two relays sending
+ * different batches at once could put an account's newer event on Kafka before an older one. The other
+ * replicas are hot standbys: the lock is released when the active relay's transaction ends, even if it dies.
  */
 public class OutboxRelay {
 
@@ -26,25 +25,9 @@ public class OutboxRelay {
 
     // Header the Spring Kafka JSON deserializer reads to pick the target class.
     private static final String TYPE_ID_HEADER = "__TypeId__";
+    private static final long SEND_TIMEOUT_SECONDS = 10;
 
-    private static final String LOCK_NEXT_BATCH = """
-            SELECT id, topic, message_key, event_type, payload
-            FROM outbox
-            WHERE status = 'PENDING'
-            ORDER BY created_at
-            LIMIT ?
-            FOR UPDATE SKIP LOCKED
-            """;
-
-    private static final String MARK_PROCESSED =
-            "UPDATE outbox SET status = 'PROCESSED', processed_at = ? WHERE id = ?";
-
-    private static final String DELETE_PROCESSED_BEFORE =
-            "DELETE FROM outbox WHERE status = 'PROCESSED' AND processed_at < ?";
-
-    private record PendingRow(UUID id, String topic, String key, String eventType, String payload) {}
-
-    private final JdbcTemplate jdbc;
+    private final OutboxRepository outbox;
     private final TransactionTemplate transactionTemplate;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final int batchSize;
@@ -55,7 +38,7 @@ public class OutboxRelay {
                        KafkaTemplate<String, String> kafkaTemplate,
                        int batchSize,
                        int retentionDays) {
-        this.jdbc = jdbc;
+        this.outbox = new OutboxRepository(jdbc);
         this.transactionTemplate = transactionTemplate;
         this.kafkaTemplate = kafkaTemplate;
         this.batchSize = batchSize;
@@ -65,28 +48,15 @@ public class OutboxRelay {
     @Scheduled(fixedDelayString = "${bankflow.outbox.poll-interval-ms:5000}")
     public void process() {
         transactionTemplate.executeWithoutResult(status -> {
-            List<PendingRow> batch = jdbc.query(LOCK_NEXT_BATCH, (rs, i) -> new PendingRow(
-                    rs.getObject("id", UUID.class),
-                    rs.getString("topic"),
-                    rs.getString("message_key"),
-                    rs.getString("event_type"),
-                    rs.getString("payload")), batchSize);
-
-            for (PendingRow row : batch) {
-                try {
-                    ProducerRecord<String, String> record = new ProducerRecord<>(row.topic(), row.key(), row.payload());
-                    record.headers().add(TYPE_ID_HEADER, row.eventType().getBytes(StandardCharsets.UTF_8));
-
-                    kafkaTemplate.send(record).get(10, TimeUnit.SECONDS);
-                    jdbc.update(MARK_PROCESSED, LocalDateTime.now(), row.id());
-                } catch (Exception e) {
-                    if (e instanceof InterruptedException) {
-                        Thread.currentThread().interrupt();
-                    }
-                    // Keep order: stop at the first failure, the rest is retried on the next run.
-                    log.error("Failed to relay outbox entry {}", row.id(), e);
-                    break;
+            if (!outbox.tryLockRelay()) {
+                return; // another replica is publishing
+            }
+            for (PendingRow row : outbox.lockNextBatch(batchSize)) {
+                if (!publish(row)) {
+                    break; // keep order: this row and the rest are retried on the next run
                 }
+
+                outbox.markProcessed(row.id());
             }
         });
     }
@@ -94,7 +64,8 @@ public class OutboxRelay {
     @Scheduled(cron = "${bankflow.outbox.cleanup-cron:0 0 * * * *}")
     public void cleanup() {
         Integer deleted = transactionTemplate.execute(status ->
-                jdbc.update(DELETE_PROCESSED_BEFORE, LocalDateTime.now().minusDays(retentionDays)));
+                outbox.deleteProcessedBefore(LocalDateTime.now().minusDays(retentionDays)));
+
         log.info("Outbox cleanup: deleted {} processed entries", deleted);
     }
 
@@ -105,6 +76,29 @@ public class OutboxRelay {
     public void close() throws Exception {
         if (kafkaTemplate.getProducerFactory() instanceof DisposableBean factory) {
             factory.destroy();
+        }
+    }
+
+    /** Sends one row and waits for Kafka's acknowledgement; false if it did not come. */
+    private boolean publish(PendingRow row) {
+        ProducerRecord<String, String> record = new ProducerRecord<>(row.topic(), row.key(), row.payload());
+
+        record.headers().add(TYPE_ID_HEADER, row.eventType().getBytes(StandardCharsets.UTF_8));
+
+        try {
+            kafkaTemplate.send(record).get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+            log.error("Interrupted while relaying outbox entry {}", row.id(), e);
+
+            return false;
+        } catch (Exception e) {
+            log.error("Failed to relay outbox entry {}", row.id(), e);
+
+            return false;
         }
     }
 }
