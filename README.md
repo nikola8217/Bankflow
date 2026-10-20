@@ -34,8 +34,8 @@ flowchart LR
     Client --> TS
     Client --> LS
 
-    TS -->|"GET /internal/accounts/{id}<br/>(X-Internal-Api-Key)"| ACS
     ACS -->|account-created| K
+    K -->|account-created| TS
     TS -->|transaction-created| K
     K --> LS
     LS -->|transaction-approved / declined| K
@@ -45,7 +45,7 @@ flowchart LR
 | Service | Owns | Responsibility |
 |---|---|---|
 | **Auth** | users | Registration, login, JWT issuing |
-| **Account** | accounts | Opening/closing accounts; publishes `AccountCreated` |
+| **Account** | accounts | Opening/closing accounts; publishes `AccountCreated` (consumed by Transaction and Ledger) |
 | **Transaction** | transaction lifecycle (event-sourced) | Accepts deposits, withdrawals and transfers; tracks each one to `COMPLETED` or `FAILED` |
 | **Ledger** | balances (system of record) | Books money under row locks, decides approve/decline, keeps the account statement |
 
@@ -54,7 +54,7 @@ Each service has its own database; services never read each other's tables.
 ### Transaction flow
 
 1. The client sends a deposit, withdrawal or transfer to the Transaction service, optionally with an `Idempotency-Key`.
-2. The Transaction service checks with the Account service that the source account exists, is active and belongs to the user.
+2. The Transaction service checks in its local copy of accounts (built from `account-created` events) that the source account exists, is active and belongs to the user. No other service is called.
 3. In one database transaction it appends `TransactionInitiated` to the event store and writes `TransactionCreated` to the outbox.
 4. The client immediately receives **202 Accepted** with `Location: /api/transactions/{id}`.
 5. The outbox worker publishes the event to Kafka (`transaction-created`).
@@ -66,13 +66,11 @@ Each service has its own database; services never read each other's tables.
 sequenceDiagram
     participant C as Client
     participant T as Transaction
-    participant A as Account
     participant K as Kafka
     participant L as Ledger
 
     C->>T: POST /api/transactions/withdraw (Idempotency-Key)
-    T->>A: GET /internal/accounts/{id}
-    A-->>T: owner, status, currency
+    T->>T: check account in local replica (owner, status, currency)
     T->>T: event store + outbox (one DB transaction)
     T-->>C: 202 Accepted, Location: /api/transactions/{id}
     T->>K: transaction-created (outbox worker)
@@ -117,14 +115,14 @@ Deposits follow the same path: they stay `PENDING` until the Ledger has booked t
 | Events for one account reach Kafka in the order they were written, even with several replicas | Every replica runs the outbox relay, but a transaction-scoped advisory lock lets only one publish at a time; it sends rows oldest first and stops at the first failure. The others are hot standbys |
 | A malformed message cannot block a consumer | `ErrorHandlingDeserializer`, retries with back-off, then a dead-letter topic (`<topic>-dlt`) |
 | A retried HTTP request never moves money twice | `Idempotency-Key` scoped per user: a retry returns the original transaction, a reused key with a different payload is rejected (422), concurrent duplicates all receive the same result |
-| A slow dependency cannot exhaust the connection pool | HTTP timeouts; remote calls happen before a database transaction is opened |
+| A transaction can be accepted while the Account service is down | No service calls another over HTTP; Transaction validates accounts against its own replica, filled from `account-created` events |
 | Amounts are exact to the cent | Amounts with more than two decimal places are rejected at the API boundary |
 | Errors are reported accurately | Client errors map to 4xx; unexpected errors return a generic 500 and are logged with a full stack trace |
 
 ## Security
 
 - **Ownership checks everywhere.** A user can only read or use their own accounts, balances, statements and transactions; someone else's resource returns **404**, so its existence is not revealed.
-- **Service-to-service calls** use a separate internal endpoint protected by an `X-Internal-Api-Key` header (constant-time comparison).
+- **No service-to-service HTTP.** Services share data only through Kafka events, so there is no internal endpoint or shared API key to protect.
 - **JWT (HS256)** with no default secret: a service refuses to start if the secret is missing or too short.
 
 ---
@@ -195,7 +193,7 @@ The same system runs on a local Kubernetes cluster (Docker Desktop), deployed wi
 - **PostgreSQL** - one instance per service (StatefulSet with a persistent volume).
 - **Kafka** - managed by the **Strimzi** operator, in KRaft mode.
 - **Services** - one reusable Helm chart for all four: startup, liveness and readiness probes; configuration in a ConfigMap (a change triggers a rolling restart); secrets read from a Kubernetes Secret, never committed.
-- **Gateway** - **Envoy Gateway** (Gateway API) exposes `/api/**` on `http://localhost`; `/actuator` and `/internal` are not routed, so they stay reachable only inside the cluster.
+- **Gateway** - **Envoy Gateway** (Gateway API) exposes `/api/**` on `http://localhost`; `/actuator` is not routed, so it stays reachable only inside the cluster.
 
 Step-by-step instructions: [deploy/README.md](deploy/README.md).
 
@@ -218,7 +216,7 @@ Step-by-step instructions: [deploy/README.md](deploy/README.md).
 ```bash
 git clone https://github.com/nikola8217/Bankflow.git
 cd Bankflow
-cp .env.example .env          # then set JWT_SECRET and INTERNAL_API_KEY
+cp .env.example .env          # then set JWT_SECRET
 docker compose up -d --build
 ```
 
@@ -235,7 +233,7 @@ To run on Kubernetes instead, see [Running on Kubernetes](#running-on-kubernetes
 
 In Swagger, click **Authorize** and paste the token from `POST /api/auth/login`.
 
-To run a single service from the IDE, keep the rest in Docker and set `JWT_SECRET` (plus `INTERNAL_API_KEY` for Account and Transaction) as environment variables in the run configuration. The defaults point to the databases and to Kafka on `localhost:9094`.
+To run a single service from the IDE, keep the rest in Docker and set `JWT_SECRET` as an environment variable in the run configuration. The defaults point to the databases and to Kafka on `localhost:9094`.
 
 ---
 
@@ -249,6 +247,6 @@ To run a single service from the IDE, keep the rest in Docker and set `JWT_SECRE
 
 **One active outbox relay per service.** Relays on several replicas publishing different batches in parallel would be faster, but could send an account's newer event before an older one, and the Ledger would then see a withdrawal before the deposit that funds it. So only the replica holding an advisory lock publishes. The cost is throughput bounded by one relay; if that ever becomes the limit, the next step is claiming rows per message key (or per partition) instead of globally.
 
-**Synchronous account lookup.** The Transaction service asks the Account service whether an account exists, is active and belongs to the user. This couples availability (mitigated with timeouts and by calling outside DB transactions); the alternative is a local replica of accounts built from `account-created` events.
+**Local account replica instead of a synchronous lookup.** The Transaction service keeps its own copy of accounts (id, owner, currency, status), filled from `account-created` events, instead of asking the Account service on every request. It no longer depends on Account being up, and a request makes no network call before it is accepted. The price is eventual consistency: for a second or two after an account is opened, its first transaction gets a 404 and the client retries. Closing an account does not reach the replica yet; that comes next, with account closing as a saga. A new consumer group reads the topic from the beginning, which fills the replica as long as Kafka still retains the events; a production system would backfill it once from the Account database.
 
 **One statement row per transaction.** A transfer appears in both parties' statements from a single row. Double-entry bookkeeping (a debit and a credit posting per transfer) is on the roadmap.

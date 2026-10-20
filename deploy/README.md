@@ -54,8 +54,7 @@ Application secrets. Created by hand, never committed (use the same values as in
 
 ```bash
 kubectl -n bankflow create secret generic bankflow-app \
-  --from-literal=jwt-secret=<jwt-secret> \
-  --from-literal=internal-api-key=<internal-api-key>
+  --from-literal=jwt-secret=<jwt-secret>
 ```
 
 Every service is installed from the same chart with its own values file. Images come from GHCR and are tagged with the git SHA of the commit on `main` that built them:
@@ -88,7 +87,7 @@ To open a service's Swagger UI, use a port-forward, e.g. `kubectl -n bankflow po
 | `/api/transactions/**` | transaction-service |
 | `/api/ledger/**` | ledger-service |
 
-`/actuator/**` and `/internal/**` are not routed, so they stay inside the cluster.
+`/actuator/**` is not routed, so it stays inside the cluster.
 
 ```bash
 helm upgrade --install eg oci://docker.io/envoyproxy/gateway-helm \
