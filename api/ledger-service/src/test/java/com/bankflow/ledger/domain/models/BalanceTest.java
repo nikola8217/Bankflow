@@ -59,4 +59,22 @@ class BalanceTest {
         assertThat(balance.canDebit(new BigDecimal("100.00"))).isTrue();
         assertThat(balance.canDebit(new BigDecimal("100.01"))).isFalse();
     }
+
+    @Test
+    void emptyAccountCanBeClosed() {
+        Balance balance = balanceWith("0.00");
+
+        balance.close();
+
+        assertThat(balance.isClosed()).isTrue();
+    }
+
+    @Test
+    void accountWithMoneyCannotBeClosed() {
+        Balance balance = balanceWith("0.01");
+
+        assertThat(balance.canClose()).isFalse();
+        assertThatThrownBy(balance::close).isInstanceOf(IllegalStateException.class);
+        assertThat(balance.isClosed()).isFalse();
+    }
 }

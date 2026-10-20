@@ -22,8 +22,11 @@ class KafkaTopicsTest extends AbstractIntegrationTest {
                 Topics.TRANSACTION_DECLINED,
                 Topics.TRANSACTION_CREATED,
                 Topics.ACCOUNT_CREATED,
+                Topics.ACCOUNT_CLOSE_REQUESTED,
+                Topics.ACCOUNT_CLOSURE_DECIDED,
                 Topics.TRANSACTION_CREATED + Topics.DLT_SUFFIX,
-                Topics.ACCOUNT_CREATED + Topics.DLT_SUFFIX);
+                Topics.ACCOUNT_CREATED + Topics.DLT_SUFFIX,
+                Topics.ACCOUNT_CLOSE_REQUESTED + Topics.DLT_SUFFIX);
 
         try (AdminClient admin = AdminClient.create(
                 Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {

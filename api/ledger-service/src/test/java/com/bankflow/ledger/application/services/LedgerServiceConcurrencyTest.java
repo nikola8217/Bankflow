@@ -31,6 +31,9 @@ class LedgerServiceConcurrencyTest extends AbstractIntegrationTest {
     LedgerService ledgerService;
 
     @Autowired
+    AccountLifecycleService accountLifecycle;
+
+    @Autowired
     BalanceRepository balanceRepository;
 
     @Autowired
@@ -41,7 +44,7 @@ class LedgerServiceConcurrencyTest extends AbstractIntegrationTest {
         UUID accountId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
 
-        ledgerService.registerAccount(new AccountCreatedEvent(accountId, userId, "RSD"));
+        accountLifecycle.registerAccount(new AccountCreatedEvent(accountId, userId, "RSD"));
         ledgerService.process(event(accountId, userId, TransactionType.DEPOSIT, "1000.00"));
 
         int requests = 50;

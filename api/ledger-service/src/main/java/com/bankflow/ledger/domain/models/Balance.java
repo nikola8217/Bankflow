@@ -13,6 +13,7 @@ public class Balance {
     private BigDecimal amount;
     private final String currency;
     private LocalDateTime updatedAt;
+    private boolean closed;
 
     public Balance(UUID userId, UUID accountId, BigDecimal amount, String currency) {
         this.userId = userId;
@@ -22,17 +23,32 @@ public class Balance {
         this.updatedAt = LocalDateTime.now();
     }
 
-    private Balance(UUID userId, UUID accountId, BigDecimal amount, String currency, LocalDateTime updatedAt) {
+    private Balance(UUID userId, UUID accountId, BigDecimal amount, String currency,
+                    LocalDateTime updatedAt, boolean closed) {
         this.userId = userId;
         this.accountId = accountId;
         this.amount = amount;
         this.currency = currency;
         this.updatedAt = updatedAt;
+        this.closed = closed;
     }
 
     public static Balance restore(UUID userId, UUID accountId, BigDecimal amount,
-                                  String currency, LocalDateTime updatedAt) {
-        return new Balance(userId, accountId, amount, currency, updatedAt);
+                                  String currency, LocalDateTime updatedAt, boolean closed) {
+        return new Balance(userId, accountId, amount, currency, updatedAt, closed);
+    }
+
+    /** Only an empty account can be closed: closing must never strand or destroy money. */
+    public boolean canClose() {
+        return amount.signum() == 0;
+    }
+
+    public void close() {
+        if (!canClose()) {
+            throw new IllegalStateException("Account " + accountId + " still holds " + amount + " " + currency);
+        }
+        this.closed = true;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public boolean canDebit(BigDecimal amount) {

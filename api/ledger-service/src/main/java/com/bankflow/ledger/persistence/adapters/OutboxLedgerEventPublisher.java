@@ -3,6 +3,7 @@ package com.bankflow.ledger.persistence.adapters;
 import com.bankflow.ledger.application.ports.LedgerEventPublisher;
 import com.bankflow.outbox.OutboxMessage;
 import com.bankflow.outbox.OutboxWriter;
+import com.bankflow.shared.events.AccountClosureDecidedEvent;
 import com.bankflow.shared.events.TransactionApprovedEvent;
 import com.bankflow.shared.events.TransactionDeclinedEvent;
 import com.bankflow.shared.events.Topics;
@@ -30,6 +31,15 @@ public class OutboxLedgerEventPublisher implements LedgerEventPublisher {
                 event.transactionId(),
                 Topics.TRANSACTION_DECLINED,
                 event.transactionId().toString(),
+                event));
+    }
+
+    @Override
+    public void accountClosureDecided(AccountClosureDecidedEvent event) {
+        outboxWriter.append(new OutboxMessage(
+                event.accountId(),
+                Topics.ACCOUNT_CLOSURE_DECIDED,
+                event.accountId().toString(),
                 event));
     }
 }

@@ -24,6 +24,7 @@ public class BalanceRepositoryAdapter implements BalanceRepository {
                         existing -> {
                             existing.setAmount(balance.getAmount());
                             existing.setUpdatedAt(balance.getUpdatedAt());
+                            existing.setClosed(balance.isClosed());
                             jpaRepository.save(existing);
                         },
                         () -> jpaRepository.save(mapper.toModel(balance))

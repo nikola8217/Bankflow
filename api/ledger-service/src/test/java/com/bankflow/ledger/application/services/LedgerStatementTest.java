@@ -23,18 +23,24 @@ class LedgerStatementTest extends AbstractIntegrationTest {
     LedgerService ledgerService;
 
     @Autowired
+    AccountLifecycleService accountLifecycle;
+
+    @Autowired
     TransactionHistoryRepository historyRepository;
 
     @Test
     void recipientSeesIncomingTransfer() {
         UUID anasAccount = newAccount();
         UUID jelenasAccount = newAccount();
+
         ledgerService.process(event(anasAccount, TransactionType.DEPOSIT, "1000.00", null));
 
         TransactionCreatedEvent transfer = event(anasAccount, TransactionType.TRANSFER, "300.00", jelenasAccount);
+
         ledgerService.process(transfer);
 
         List<TransactionHistory> jelenasStatement = historyRepository.findAllByAccountId(jelenasAccount);
+
         assertThat(jelenasStatement)
                 .extracting(TransactionHistory::getTransactionId)
                 .containsExactly(transfer.transactionId());
@@ -58,7 +64,8 @@ class LedgerStatementTest extends AbstractIntegrationTest {
 
     private UUID newAccount() {
         UUID accountId = UUID.randomUUID();
-        ledgerService.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
+        accountLifecycle.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
+
         return accountId;
     }
 

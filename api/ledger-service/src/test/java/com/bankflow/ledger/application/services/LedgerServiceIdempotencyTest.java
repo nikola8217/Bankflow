@@ -21,6 +21,9 @@ class LedgerServiceIdempotencyTest extends AbstractIntegrationTest {
     LedgerService ledgerService;
 
     @Autowired
+    AccountLifecycleService accountLifecycle;
+
+    @Autowired
     BalanceRepository balanceRepository;
 
     @Autowired
@@ -57,7 +60,7 @@ class LedgerServiceIdempotencyTest extends AbstractIntegrationTest {
 
     private UUID newAccount() {
         UUID accountId = UUID.randomUUID();
-        ledgerService.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
+        accountLifecycle.registerAccount(new AccountCreatedEvent(accountId, UUID.randomUUID(), "RSD"));
         return accountId;
     }
 
