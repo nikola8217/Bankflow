@@ -114,7 +114,7 @@ Deposits follow the same path: they stay `PENDING` until the Ledger has booked t
 | A balance never goes below zero, even under concurrent withdrawals | Balance rows are locked with `SELECT … FOR UPDATE`; transfers lock both accounts in a fixed order to prevent deadlocks |
 | A redelivered Kafka message is booked only once | Idempotent consumers: the processed-event key is stored in the same DB transaction as the booking |
 | No event is lost between the database and Kafka | Transactional outbox; a row is marked as published only after the broker acknowledges it |
-| Outbox workers can run on multiple replicas | Batches are claimed with `FOR UPDATE SKIP LOCKED`, ordered by creation time |
+| Events for one account reach Kafka in the order they were written, even with several replicas | Every replica runs the outbox relay, but a transaction-scoped advisory lock lets only one publish at a time; it sends rows oldest first and stops at the first failure. The others are hot standbys |
 | A malformed message cannot block a consumer | `ErrorHandlingDeserializer`, retries with back-off, then a dead-letter topic (`<topic>-dlt`) |
 | A retried HTTP request never moves money twice | `Idempotency-Key` scoped per user: a retry returns the original transaction, a reused key with a different payload is rejected (422), concurrent duplicates all receive the same result |
 | A slow dependency cannot exhaust the connection pool | HTTP timeouts; remote calls happen before a database transaction is opened |
@@ -246,6 +246,8 @@ To run a single service from the IDE, keep the rest in Docker and set `JWT_SECRE
 **The Ledger owns balances.** Keeping every balance change in one service lets correctness rely on local database transactions and row locks instead of distributed coordination.
 
 **At-least-once delivery plus idempotent consumers,** rather than exactly-once. The outbox may publish an event twice after a crash, and every consumer tolerates duplicates. This is simpler and more robust than Kafka transactions spanning the database.
+
+**One active outbox relay per service.** Relays on several replicas publishing different batches in parallel would be faster, but could send an account's newer event before an older one, and the Ledger would then see a withdrawal before the deposit that funds it. So only the replica holding an advisory lock publishes. The cost is throughput bounded by one relay; if that ever becomes the limit, the next step is claiming rows per message key (or per partition) instead of globally.
 
 **Synchronous account lookup.** The Transaction service asks the Account service whether an account exists, is active and belongs to the user. This couples availability (mitigated with timeouts and by calling outside DB transactions); the alternative is a local replica of accounts built from `account-created` events.
 
