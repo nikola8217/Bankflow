@@ -27,4 +27,9 @@ public class AccountDirectoryAdapter implements AccountDirectory, AccountDirecto
     public void addIfAbsent(AccountSnapshot account) {
         repository.insertIfAbsent(account.id(), account.userId(), account.currency(), account.status());
     }
+
+    @Override
+    public void markClosed(AccountSnapshot account) {
+        repository.upsertClosed(account.id(), account.userId(), account.currency());
+    }
 }

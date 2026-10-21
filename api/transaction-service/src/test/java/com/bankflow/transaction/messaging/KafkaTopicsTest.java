@@ -17,9 +17,13 @@ class KafkaTopicsTest extends AbstractIntegrationTest {
     @Test
     void declaredTopicsExistWithThreePartitions() throws Exception {
         List<String> expected = List.of(
+                Topics.ACCOUNT_CREATED,
+                Topics.ACCOUNT_CLOSED,
                 Topics.TRANSACTION_CREATED,
                 Topics.TRANSACTION_APPROVED,
                 Topics.TRANSACTION_DECLINED,
+                Topics.ACCOUNT_CREATED + Topics.DLT_SUFFIX,
+                Topics.ACCOUNT_CLOSED + Topics.DLT_SUFFIX,
                 Topics.TRANSACTION_APPROVED + Topics.DLT_SUFFIX,
                 Topics.TRANSACTION_DECLINED + Topics.DLT_SUFFIX);
 

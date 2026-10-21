@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public interface AccountReplicaJpaRepository extends JpaRepository<AccountReplicaJpaEntity, UUID> {
 
+    /** A late account-created never overwrites a row that is already there, so a closed account stays closed. */
     @Modifying
     @Query(value = """
             INSERT INTO account_replica (id, user_id, currency, status)
@@ -20,4 +21,14 @@ public interface AccountReplicaJpaRepository extends JpaRepository<AccountReplic
                         @Param("userId") UUID userId,
                         @Param("currency") String currency,
                         @Param("status") String status);
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO account_replica (id, user_id, currency, status)
+            VALUES (:id, :userId, :currency, 'CLOSED')
+            ON CONFLICT (id) DO UPDATE SET status = 'CLOSED'
+            """, nativeQuery = true)
+    void upsertClosed(@Param("id") UUID id,
+                      @Param("userId") UUID userId,
+                      @Param("currency") String currency);
 }
