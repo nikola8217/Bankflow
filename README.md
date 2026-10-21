@@ -34,8 +34,9 @@ flowchart LR
     Client --> TS
     Client --> LS
 
-    ACS -->|account-created| K
-    K -->|account-created| TS
+    ACS -->|account-created / close-requested / closed| K
+    K -->|account-closure-decided| ACS
+    K -->|account-created / closed| TS
     TS -->|transaction-created| K
     K --> LS
     LS -->|transaction-approved / declined| K
@@ -45,7 +46,7 @@ flowchart LR
 | Service | Owns | Responsibility |
 |---|---|---|
 | **Auth** | users | Registration, login, JWT issuing |
-| **Account** | accounts | Opening/closing accounts; publishes `AccountCreated` (consumed by Transaction and Ledger) |
+| **Account** | accounts | Opens accounts and runs the account-closing saga; publishes `account-created` and `account-closed` |
 | **Transaction** | transaction lifecycle (event-sourced) | Accepts deposits, withdrawals and transfers; tracks each one to `COMPLETED` or `FAILED` |
 | **Ledger** | balances (system of record) | Books money under row locks, decides approve/decline, keeps the account statement |
 
@@ -85,6 +86,42 @@ sequenceDiagram
 
 Deposits follow the same path: they stay `PENDING` until the Ledger has booked them.
 
+### Account closing
+
+Closing is a saga between Account and Ledger, because only the Ledger knows whether the account still holds money.
+
+1. The client calls `PATCH /api/accounts/{id}/close`. Account moves the account to `CLOSING`, writes `account-close-requested` to its outbox and returns **202 Accepted**.
+2. The Ledger locks the balance row and decides: it approves only if the balance is zero, and from then on refuses every booking on that account. It answers with `account-closure-decided`.
+3. Approved: Account moves the account to `CLOSED` and publishes `account-closed`. Rejected: Account moves it back to `ACTIVE` (the compensating step).
+4. The Transaction service marks the account closed in its replica, so new transactions on it are rejected at the API instead of failing later in the Ledger.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Account
+    participant K as Kafka
+    participant L as Ledger
+    participant T as Transaction
+
+    C->>A: PATCH /api/accounts/{id}/close
+    A->>A: ACTIVE → CLOSING + outbox (one DB transaction)
+    A-->>C: 202 Accepted (status CLOSING)
+    A->>K: account-close-requested
+    K->>L: consume
+    L->>L: lock balance row, approve only if zero,<br/>mark closed + outbox (one DB transaction)
+    L->>K: account-closure-decided
+    K->>A: consume
+    alt approved
+        A->>A: CLOSING → CLOSED
+        A->>K: account-closed
+        K->>T: consume, mark closed in replica
+    else rejected
+        A->>A: CLOSING → ACTIVE
+    end
+```
+
+The client sees the outcome with `GET /api/accounts/{id}`.
+
 ---
 
 ## Patterns
@@ -97,11 +134,11 @@ Deposits follow the same path: they stay `PENDING` until the Ledger has booked t
 
 **CommandBus.** Every write in the Transaction service is a command object dispatched through a small, hand-written `CommandBus` to exactly one handler, discovered through Spring's dependency injection. Controllers stay thin, and adding a new operation means adding a command and a handler without touching existing code.
 
-**Choreography saga.** Transaction and Ledger coordinate only through events; there is no orchestrator. With two participants, an orchestrator would add coupling without adding value.
+**Choreography sagas.** Two flows span services: a transaction (Transaction ↔ Ledger) and closing an account (Account ↔ Ledger, with a compensating step back to `ACTIVE`). The services coordinate only through events; there is no orchestrator. With two participants per flow, an orchestrator would add coupling without adding value.
 
 **Transactional outbox (all three producers).** Domain changes and the outgoing event are committed in the same database transaction; a worker publishes to Kafka and marks the row only after the broker acknowledges it.
 
-**Hexagonal architecture.** Business logic depends on ports (`EventStore`, `AccountClient`, `TransactionRunner`, …); Spring, JPA, Kafka and HTTP live in adapters (persistence, messaging, client, web). This keeps most business tests plain unit tests.
+**Hexagonal architecture.** Business logic depends on ports (`EventStore`, `AccountDirectory`, `TransactionRunner`, …); Spring, JPA, Kafka and HTTP live in adapters (persistence, messaging, web). This keeps most business tests plain unit tests.
 
 ---
 
@@ -116,6 +153,7 @@ Deposits follow the same path: they stay `PENDING` until the Ledger has booked t
 | A malformed message cannot block a consumer | `ErrorHandlingDeserializer`, retries with back-off, then a dead-letter topic (`<topic>-dlt`) |
 | A retried HTTP request never moves money twice | `Idempotency-Key` scoped per user: a retry returns the original transaction, a reused key with a different payload is rejected (422), concurrent duplicates all receive the same result |
 | A transaction can be accepted while the Account service is down | No service calls another over HTTP; Transaction validates accounts against its own replica, filled from `account-created` events |
+| An account is closed only with a zero balance, and no money moves on it afterwards | The Ledger decides the closure under the same row lock it books with, so a closure and a concurrent booking cannot both win; once closed, the Ledger declines every booking and the Transaction service rejects new requests from its replica |
 | Amounts are exact to the cent | Amounts with more than two decimal places are rejected at the API boundary |
 | Errors are reported accurately | Client errors map to 4xx; unexpected errors return a generic 500 and are logged with a full stack trace |
 
@@ -136,7 +174,7 @@ Deposits follow the same path: they stay `PENDING` until the Ledger has booked t
 | POST | `/api/accounts` | Open an account |
 | GET | `/api/accounts/user` | My accounts |
 | GET | `/api/accounts/{id}` | Account details |
-| PATCH | `/api/accounts/{id}/close` | Close an account |
+| PATCH | `/api/accounts/{id}/close` | Start closing an account → 202 (`CLOSING`) |
 | POST | `/api/transactions/deposit` | Deposit → 202 |
 | POST | `/api/transactions/withdraw` | Withdraw → 202 |
 | POST | `/api/transactions/transfer` | Transfer → 202 |
@@ -150,7 +188,10 @@ Write endpoints accept an optional `Idempotency-Key` header.
 
 | Topic | Producer | Consumer |
 |---|---|---|
-| `account-created` | account-service | ledger-service |
+| `account-created` | account-service | ledger-service, transaction-service |
+| `account-close-requested` | account-service | ledger-service |
+| `account-closure-decided` | ledger-service | account-service |
+| `account-closed` | account-service | transaction-service |
 | `transaction-created` | transaction-service | ledger-service |
 | `transaction-approved` | ledger-service | transaction-service |
 | `transaction-declined` | ledger-service | transaction-service |
@@ -247,6 +288,8 @@ To run a single service from the IDE, keep the rest in Docker and set `JWT_SECRE
 
 **One active outbox relay per service.** Relays on several replicas publishing different batches in parallel would be faster, but could send an account's newer event before an older one, and the Ledger would then see a withdrawal before the deposit that funds it. So only the replica holding an advisory lock publishes. The cost is throughput bounded by one relay; if that ever becomes the limit, the next step is claiming rows per message key (or per partition) instead of globally.
 
-**Local account replica instead of a synchronous lookup.** The Transaction service keeps its own copy of accounts (id, owner, currency, status), filled from `account-created` events, instead of asking the Account service on every request. It no longer depends on Account being up, and a request makes no network call before it is accepted. The price is eventual consistency: for a second or two after an account is opened, its first transaction gets a 404 and the client retries. Closing an account does not reach the replica yet; that comes next, with account closing as a saga. A new consumer group reads the topic from the beginning, which fills the replica as long as Kafka still retains the events; a production system would backfill it once from the Account database.
+**Local account replica instead of a synchronous lookup.** The Transaction service keeps its own copy of accounts (id, owner, currency, status), filled from `account-created` events, instead of asking the Account service on every request. It no longer depends on Account being up, and a request makes no network call before it is accepted. The price is eventual consistency: for a second or two after an account is opened, its first transaction gets a 404 and the client retries. Closures reach it through `account-closed`. Because `account-created` and `account-closed` are different topics with no ordering between them, a closure is written as an upsert and a late creation never overwrites an existing row, so a closed account cannot come back as active. A new consumer group reads the topic from the beginning, which fills the replica as long as Kafka still retains the events; a production system would backfill it once from the Account database.
+
+**Closing an account as a saga.** Account cannot know whether an account still holds money, and asking the Ledger over HTTP would bring back the synchronous coupling the replica removed. So closing is asynchronous: the account waits in `CLOSING` until the Ledger decides, and the client gets 202 instead of an immediate answer. The cost is a short window in which the account is neither open nor closed; deposits accepted in that window either land before the Ledger's decision (and the closure is rejected) or are declined after it.
 
 **One statement row per transaction.** A transfer appears in both parties' statements from a single row. Double-entry bookkeeping (a debit and a credit posting per transfer) is on the roadmap.
