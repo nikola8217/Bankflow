@@ -3,6 +3,7 @@ package com.bankflow.account.domain.models;
 import com.bankflow.account.domain.enums.AccountStatus;
 import com.bankflow.account.domain.enums.AccountType;
 import com.bankflow.account.domain.enums.Currency;
+import com.bankflow.account.domain.exceptions.AccountClosedException;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -38,8 +39,45 @@ public class Account {
         return new Account(id, userId, type, status, currency, createdAt, updatedAt);
     }
 
-    public void close() {
-        this.status = AccountStatus.CLOSED;
+    /** Step one of the closing saga. Only an active account can start closing. */
+    public void requestClose() {
+        if (status == AccountStatus.CLOSED) {
+            throw new AccountClosedException(id);
+        }
+
+        if (status != AccountStatus.ACTIVE) {
+            throw new IllegalStateException("Account " + id + " cannot start closing from " + status);
+        }
+
+        changeStatus(AccountStatus.CLOSING);
+    }
+
+    /** The Ledger approved: the account holds no money and accepts no more bookings. */
+    public void confirmClose() {
+        requireClosing();
+
+        changeStatus(AccountStatus.CLOSED);
+    }
+
+    /** Compensation: the Ledger rejected the closure, so the account goes back to active. */
+    public void cancelClose() {
+        requireClosing();
+
+        changeStatus(AccountStatus.ACTIVE);
+    }
+
+    public boolean isClosing() {
+        return status == AccountStatus.CLOSING;
+    }
+
+    private void requireClosing() {
+        if (status != AccountStatus.CLOSING) {
+            throw new IllegalStateException("Account " + id + " is not closing but " + status);
+        }
+    }
+
+    private void changeStatus(AccountStatus newStatus) {
+        this.status = newStatus;
         this.updatedAt = LocalDateTime.now();
     }
 }

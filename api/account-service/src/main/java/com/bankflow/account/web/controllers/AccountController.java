@@ -42,6 +42,6 @@ public class AccountController {
 
     @PatchMapping("/{id}/close")
     public ResponseEntity<AccountResponse> closeAccount(@PathVariable UUID id) {
-        return ResponseEntity.ok(accountService.closeAccount(id, SecurityUtils.getCurrentUserId()));
+        return ResponseEntity.accepted().body(accountService.closeAccount(id, SecurityUtils.getCurrentUserId()));
     }
 }

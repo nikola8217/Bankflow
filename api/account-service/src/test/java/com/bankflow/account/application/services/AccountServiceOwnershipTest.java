@@ -60,7 +60,7 @@ class AccountServiceOwnershipTest {
     void setUp() {
         repository = new InMemoryAccountRepository();
 
-        accountService = new AccountService(repository, account -> {});
+        accountService = new AccountService(repository, new RecordingAccountEventPublisher());
 
         Account anasAccount = new Account(
                 UUID.randomUUID(), ana, AccountType.CHECKING, AccountStatus.ACTIVE, Currency.RSD);
@@ -91,9 +91,9 @@ class AccountServiceOwnershipTest {
     }
 
     @Test
-    void ownerCanCloseAccount() {
+    void ownerCanStartClosingAccount() {
         AccountResponse response = accountService.closeAccount(anasAccountId, ana);
 
-        assertThat(response.status()).isEqualTo(AccountStatus.CLOSED);
+        assertThat(response.status()).isEqualTo(AccountStatus.CLOSING);
     }
 }

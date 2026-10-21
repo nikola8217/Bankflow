@@ -4,4 +4,8 @@ import com.bankflow.account.domain.models.Account;
 
 public interface AccountEventPublisher {
     void accountCreated(Account account);
+
+    void closeRequested(Account account);
+
+    void accountClosed(Account account);
 }
