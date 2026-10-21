@@ -3,6 +3,7 @@ package com.bankflow.shared.events;
 public final class Topics {
 
     public static final String ACCOUNT_CREATED = "account-created";
+    public static final String ACCOUNT_CLOSED = "account-closed";
     public static final String ACCOUNT_CLOSE_REQUESTED = "account-close-requested";
     public static final String ACCOUNT_CLOSURE_DECIDED = "account-closure-decided";
     public static final String TRANSACTION_CREATED = "transaction-created";

@@ -15,7 +15,11 @@ public class KafkaTopicConfig {
     public KafkaAdmin.NewTopics kafkaTopics(@Value("${bankflow.kafka.partitions:3}") int partitions,
                                             @Value("${bankflow.kafka.replicas:1}") int replicas) {
         return new KafkaAdmin.NewTopics(
-                topic(Topics.ACCOUNT_CREATED, partitions, replicas)
+                topic(Topics.ACCOUNT_CREATED, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSE_REQUESTED, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSURE_DECIDED, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSED, partitions, replicas),
+                topic(Topics.ACCOUNT_CLOSURE_DECIDED + Topics.DLT_SUFFIX, partitions, replicas)
         );
     }
 

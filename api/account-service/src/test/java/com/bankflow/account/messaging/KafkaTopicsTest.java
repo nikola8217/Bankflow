@@ -18,7 +18,11 @@ class KafkaTopicsTest extends AbstractIntegrationTest {
     @Test
     void declaredTopicsExistWithThreePartitions() throws Exception {
         List<String> expected = List.of(
-                Topics.ACCOUNT_CREATED);
+                Topics.ACCOUNT_CREATED,
+                Topics.ACCOUNT_CLOSE_REQUESTED,
+                Topics.ACCOUNT_CLOSURE_DECIDED,
+                Topics.ACCOUNT_CLOSED,
+                Topics.ACCOUNT_CLOSURE_DECIDED + Topics.DLT_SUFFIX);
 
         try (AdminClient admin = AdminClient.create(
                 Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers()))) {
