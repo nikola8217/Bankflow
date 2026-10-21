@@ -4,4 +4,6 @@ import com.bankflow.transaction.domain.models.AccountSnapshot;
 
 public interface AccountDirectoryWriter {
     void addIfAbsent(AccountSnapshot account);
+
+    void markClosed(AccountSnapshot account);
 }
